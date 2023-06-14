@@ -1,0 +1,8 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2023-06-14
+  Features:
+    - Intial release
+    - Reads chest contents
+    - Reads recipe input/output
+    - Reads fuel input/output
