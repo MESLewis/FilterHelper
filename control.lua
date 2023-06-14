@@ -168,7 +168,9 @@ local function add_items_inserter(entity, items)
                         items[item] = item
                     end
                 end
-                --TODO transport lines?
+                if target.type == "transport-belt" then
+                    add_items_belt(target, items)
+                end
             end
         end
 
@@ -190,7 +192,9 @@ local function add_items_inserter(entity, items)
                         items[item] = item
                     end
                 end
-                --TODO transport lines?
+                if target.type == "transport-belt" then
+                    add_items_belt(target, items)
+                end
             end
         end
     end
@@ -337,4 +341,3 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
--- TODO inserter transport line search
