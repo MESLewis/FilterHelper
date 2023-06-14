@@ -107,6 +107,87 @@ local function init_global(player)
     }
 end
 
+-- this is run every tick when a filter gui is open to detect vanilla changes
+local function get_active_items(entity)
+    local active_items = {}
+    if entity.filter_slot_count > 0 then
+        for i = 1, entity.filter_slot_count do
+            table.insert(active_items, entity.get_filter(i))
+        end
+    end
+    if entity.type == "splitter" and entity.splitter_filter ~= nil then
+        local item = entity.splitter_filter.name
+        table.insert(active_items, item)
+    end
+    return active_items
+end
+
+local function add_items_inserter(entity, items)
+    if entity.type == "inserter" and entity.filter_slot_count > 0 then
+        local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
+
+        if #pickup_target_list > 0 then
+            for _, target in pairs(pickup_target_list) do
+                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+                    for _, item in pairs(target.get_recipe().products) do
+                        items[item.name] = item.name
+                    end
+                end
+                if target.get_output_inventory() ~= nil then
+                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
+                        items[item] = item
+                    end
+                end
+                if target.get_burnt_result_inventory() ~= nil then
+                    for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
+                        items[item] = item
+                    end
+                end
+                --TODO transport lines?
+            end
+        end
+
+        local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
+        if #drop_target_list > 0 then
+            for _, target in pairs(drop_target_list) do
+                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+                    for _, item in pairs(target.get_recipe().ingredients) do
+                        items[item.name] = item.name
+                    end
+                end
+                if target.get_output_inventory() ~= nil then
+                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
+                        items[item] = item
+                    end
+                end
+                if target.get_fuel_inventory() ~= nil then
+                    for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
+                        items[item] = item
+                    end
+                end
+                --TODO transport lines?
+            end
+        end
+    end
+end
+
+local function add_items_splitter(entity, items)
+    if entity.type == "splitter" then
+        for i = 1, entity.get_max_transport_line_index() do
+            local transport_line = entity.get_transport_line(i)
+            for item, _ in pairs(transport_line.get_contents()) do
+                items[item] = item
+            end
+        end
+    end
+end
+
+local function add_items(entity, items)
+    add_items_inserter(entity, items)
+    add_items_splitter(entity, items)
+    return items
+end
+
 script.on_init(function()
     global.players = {}
     for _, player in pairs(game.players) do
@@ -127,73 +208,10 @@ script.on_event(defines.events.on_gui_opened, function(event)
     -- the entity that is opened
     local entity = event.entity
     if entity ~= nil then
-        -- inserters
-        local items = {}
-        local active_items = {}
         player_global.entity = entity
-        if entity.filter_slot_count > 0 then
-            for i = 1, entity.filter_slot_count do
-                table.insert(active_items, entity.get_filter(i))
-            end
-
-            local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
-
-            if #pickup_target_list > 0 then
-                for _, target in pairs(pickup_target_list) do
-                    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                        for _, item in pairs(target.get_recipe().products) do
-                            items[item.name] = item.name
-                        end
-                    end
-                    if target.get_output_inventory() ~= nil then
-                        for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                            items[item] = item
-                        end
-                    end
-                    if target.get_burnt_result_inventory() ~= nil then
-                        for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-                            items[item] = item
-                        end
-                    end
-                    --TODO transport lines?
-                end
-            end
-
-            local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
-            if #drop_target_list > 0 then
-                for _, target in pairs(drop_target_list) do
-                    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                        for _, item in pairs(target.get_recipe().ingredients) do
-                            items[item.name] = item.name
-                        end
-                    end
-                    if target.get_output_inventory() ~= nil then
-                        for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                            items[item] = item
-                        end
-                    end
-                    if target.get_fuel_inventory() ~= nil then
-                        for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-                            items[item] = item
-                        end
-                    end
-                    --TODO transport lines?
-                end
-            end
-        --splitters
-        elseif entity.type == "splitter" then
-            for i = 1, entity.get_max_transport_line_index() do
-                local transport_line = entity.get_transport_line(i)
-                for item, _ in pairs(transport_line.get_contents()) do
-                    items[item] = item
-                end
-            end
-            if entity.splitter_filter ~= nil then
-                local item = entity.splitter_filter.name
-                table.insert(active_items, item)
-            end
-        end
+        local items = add_items(entity, {})
         player_global.items = items
+        local active_items = get_active_items(entity)
         player_global.active_items = active_items
         if next(items) ~= nil or next(active_items) ~= nil then
             build_interface(player)
@@ -274,19 +292,10 @@ script.on_event(defines.events.on_tick, function(event)
         --update my gui when vanilla filter changes
         if player_global.elements.main_frame and player_global.elements.main_frame.valid then
             local entity = player_global.entity
-            local active_items = {}
-            if entity.filter_slot_count > 0 then
-                for i = 1, entity.filter_slot_count do
-                    if entity.get_filter(i) ~= nil then
-                        table.insert(active_items, entity.get_filter(i))
-                    end
-                end
-                --TODO bring this out into its own function
-                --so the on_tick check is the same as the logic for building active_items originally
-                if #active_items ~= #player_global.active_items then
-                    player_global.active_items = active_items
-                    build_sprite_buttons(player)
-                end
+            local active_items = get_active_items(entity)
+            if #active_items ~= #player_global.active_items then
+                player_global.active_items = active_items
+                build_sprite_buttons(player)
             end
         end
     end
