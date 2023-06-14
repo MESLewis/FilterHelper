@@ -122,6 +122,31 @@ local function get_active_items(entity)
     return active_items
 end
 
+local function add_items_belt(entity, items, upstream, downstream)
+    --TODO user config for this
+    upstream = upstream or 10
+    downstream = downstream or 10
+
+    if entity.type == "transport-belt" then
+        for i = 1, entity.get_max_transport_line_index() do
+            local transport_line = entity.get_transport_line(i)
+            for item, _ in pairs(transport_line.get_contents()) do
+                items[item] = item
+            end
+        end
+        if upstream > 0 then
+            for _, belt in pairs(entity.belt_neighbours.inputs) do
+                add_items_belt(belt, items, upstream - 1, 0)
+            end
+        end
+        if downstream > 0 then
+            for _, belt in pairs(entity.belt_neighbours.outputs) do
+                add_items_belt(belt, items, 0, downstream - 1)
+            end
+        end
+    end
+end
+
 local function add_items_inserter(entity, items)
     if entity.type == "inserter" and entity.filter_slot_count > 0 then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
@@ -178,6 +203,12 @@ local function add_items_splitter(entity, items)
             for item, _ in pairs(transport_line.get_contents()) do
                 items[item] = item
             end
+        end
+        for _, belt in pairs(entity.belt_neighbours.inputs) do
+            add_items_belt(belt, items, nil, 0)
+        end
+        for _, belt in pairs(entity.belt_neighbours.outputs) do
+            add_items_belt(belt, items, 0, nil)
         end
     end
 end
@@ -306,5 +337,4 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
--- TODO wider transport line search
 -- TODO inserter transport line search
