@@ -239,7 +239,7 @@ script.on_event(defines.events.on_tick, function(event)
             reopen_vanilla(player)
         end
         --update my gui when vanilla filter changes
-        if player_global.elements.main_frame.valid then
+        if player_global.elements.main_frame and player_global.elements.main_frame.valid then
             local entity = player_global.entity
             local active_items = {}
             for i = 1, entity.filter_slot_count do
