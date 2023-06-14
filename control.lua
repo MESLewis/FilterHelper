@@ -37,8 +37,14 @@ local function build_interface(player)
         player_global.elements.main_frame.destroy()
     end
 
+    local relative_gui_type = defines.relative_gui_type.inserter_gui
+
+    if player_global.entity.type == "splitter" then
+        relative_gui_type = defines.relative_gui_type.splitter_gui
+    end
+
     local anchor = {
-        gui = defines.relative_gui_type.inserter_gui,
+        gui = relative_gui_type,
         position = defines.relative_gui_position.right
     }
 
@@ -120,59 +126,73 @@ script.on_event(defines.events.on_gui_opened, function(event)
 
     -- the entity that is opened
     local entity = event.entity
-    if entity ~= nil and entity.filter_slot_count > 0 then
-        player_global.entity = entity
-        local active_items = {}
-        for i = 1, entity.filter_slot_count do
-            table.insert(active_items, entity.get_filter(i))
-        end
-
+    if entity ~= nil then
+        -- inserters
         local items = {}
-        local pickup_target_list = entity.surface.find_entities_filtered{position = entity.pickup_position}
+        local active_items = {}
+        player_global.entity = entity
+        if entity.filter_slot_count > 0 then
+            for i = 1, entity.filter_slot_count do
+                table.insert(active_items, entity.get_filter(i))
+            end
 
-        if #pickup_target_list > 0 then
-            for _, target in pairs(pickup_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().products) do
-                        items[item.name] = item.name
+            local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
+
+            if #pickup_target_list > 0 then
+                for _, target in pairs(pickup_target_list) do
+                    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+                        for _, item in pairs(target.get_recipe().products) do
+                            items[item.name] = item.name
+                        end
                     end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = item
+                    if target.get_output_inventory() ~= nil then
+                        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+                            items[item] = item
+                        end
                     end
-                end
-                if target.get_burnt_result_inventory() ~= nil then
-                    for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-                        items[item] = item
+                    if target.get_burnt_result_inventory() ~= nil then
+                        for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
+                            items[item] = item
+                        end
                     end
+                    --TODO transport lines?
                 end
-                --TODO transport lines?
+            end
+
+            local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
+            if #drop_target_list > 0 then
+                for _, target in pairs(drop_target_list) do
+                    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+                        for _, item in pairs(target.get_recipe().ingredients) do
+                            items[item.name] = item.name
+                        end
+                    end
+                    if target.get_output_inventory() ~= nil then
+                        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+                            items[item] = item
+                        end
+                    end
+                    if target.get_fuel_inventory() ~= nil then
+                        for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
+                            items[item] = item
+                        end
+                    end
+                    --TODO transport lines?
+                end
+            end
+        --splitters
+        elseif entity.type == "splitter" then
+            for i = 1, entity.get_max_transport_line_index() do
+                local transport_line = entity.get_transport_line(i)
+                for item, _ in pairs(transport_line.get_contents()) do
+                    items[item] = item
+                end
+            end
+            if entity.splitter_filter ~= nil then
+                local item = entity.splitter_filter.name
+                table.insert(active_items, item)
             end
         end
-
-        local drop_target_list = entity.surface.find_entities_filtered{position = entity.drop_position}
-        if #drop_target_list > 0 then
-            for _, target in pairs(drop_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().ingredients) do
-                        items[item.name] = item.name
-                    end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = item
-                    end
-                end
-                if target.get_fuel_inventory() ~= nil then
-                    for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-                        items[item] = item
-                    end
-                end
-                --TODO transport lines?
-            end
-        end
-
         player_global.items = items
         player_global.active_items = active_items
         if next(items) ~= nil or next(active_items) ~= nil then
@@ -196,12 +216,20 @@ script.on_event(defines.events.on_gui_click, function(event)
         local player_global = global.players[event.player_index]
         local clicked_item_name = event.element.tags.item_name
         local entity = player_global.entity
-        for i = 1, entity.filter_slot_count do
-            if entity.get_filter(i) == nil then
-                entity.set_filter(i, clicked_item_name)
-                need_refresh = true
-                break
+        if entity.filter_slot_count > 0 then
+            for i = 1, entity.filter_slot_count do
+                if entity.get_filter(i) == nil then
+                    entity.set_filter(i, clicked_item_name)
+                    need_refresh = true
+                    break
+                end
             end
+        elseif entity.type == "splitter" then
+            entity.splitter_filter = clicked_item_name
+            if entity.splitter_output_priority == "none" then
+                entity.splitter_output_priority = "left"
+            end
+            need_refresh = true
         end
         if need_refresh == false then
             -- Play fail sound if filter slots are full
@@ -218,11 +246,16 @@ script.on_event(defines.events.on_gui_click, function(event)
         local player_global = global.players[event.player_index]
         local clicked_item_name = event.element.tags.item_name
         local entity = player_global.entity
-        for i = 1, entity.filter_slot_count do
-            if entity.get_filter(i) == clicked_item_name then
-                entity.set_filter(i, nil)
-                need_refresh = true
+        if entity.filter_slot_count > 0 then
+            for i = 1, entity.filter_slot_count do
+                if entity.get_filter(i) == clicked_item_name then
+                    entity.set_filter(i, nil)
+                    need_refresh = true
+                end
             end
+        elseif entity.type == "splitter" then
+            entity.splitter_filter = nil
+            need_refresh = true
         end
     end
     if need_refresh then
@@ -242,17 +275,21 @@ script.on_event(defines.events.on_tick, function(event)
         if player_global.elements.main_frame and player_global.elements.main_frame.valid then
             local entity = player_global.entity
             local active_items = {}
-            for i = 1, entity.filter_slot_count do
-                if entity.get_filter(i) ~= nil then
-                    table.insert(active_items, entity.get_filter(i))
+            if entity.filter_slot_count > 0 then
+                for i = 1, entity.filter_slot_count do
+                    if entity.get_filter(i) ~= nil then
+                        table.insert(active_items, entity.get_filter(i))
+                    end
                 end
-            end
-            if #active_items ~= #player_global.active_items then
-                player_global.active_items = active_items
-                build_sprite_buttons(player)
+                --TODO bring this out into its own function
+                --so the on_tick check is the same as the logic for building active_items originally
+                if #active_items ~= #player_global.active_items then
+                    player_global.active_items = active_items
+                    build_sprite_buttons(player)
+                end
             end
         end
     end
 end)
 
---NOTES - Try "splitter_gui" as relative_gui_type
+-- TODO options for what things are considered. Chests, transport lines, etc
