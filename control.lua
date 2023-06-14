@@ -234,7 +234,11 @@ script.on_event(defines.events.on_gui_click, function(event)
         local player_global = global.players[event.player_index]
         local clicked_item_name = event.element.tags.item_name
         local entity = player_global.entity
-        if entity.filter_slot_count > 0 then
+        -- if an entity only has one filter, always set it
+        if entity.filter_slot_count == 1 then
+            entity.set_filter(1, clicked_item_name)
+            need_refresh = true
+        elseif entity.filter_slot_count > 1 then
             for i = 1, entity.filter_slot_count do
                 if entity.get_filter(i) == nil then
                     entity.set_filter(i, clicked_item_name)
@@ -302,3 +306,5 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
+-- TODO wider transport line search
+-- TODO inserter transport line search
