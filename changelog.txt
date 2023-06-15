@@ -2,6 +2,7 @@
 Version: 0.1.5
 Date: ????
   Changes:
+    - Fixed crash when recipe contains fluids
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.4
 Date: 2023-06-14
