@@ -18,15 +18,18 @@ local function build_sprite_buttons(player)
     for _, sprite_name in pairs(items) do
         local button_style = (contains(active_items, sprite_name) and "yellow_slot_button" or "recipe_slot_button")
         local action = (contains(active_items, sprite_name) and "fh_deselect_button" or "fh_select_button")
-        button_table.add{
-            type = "sprite-button",
-            sprite = ("item/" .. sprite_name),
-            tags={
-                action = action,
-                item_name = sprite_name
-            },
-            style = button_style
-        }
+        local sprite = ("item/" .. sprite_name)
+        if game.is_valid_sprite_path(sprite) then
+            button_table.add {
+                type = "sprite-button",
+                sprite = sprite,
+                tags = {
+                    action = action,
+                    item_name = sprite_name
+                },
+                style = button_style
+            }
+        end
     end
 end
 
