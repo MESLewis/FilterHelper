@@ -15,17 +15,16 @@ local function build_sprite_buttons(player)
 
     local items = player_global.items
     local active_items = player_global.active_items
-    for _, sprite_name in pairs(items) do
-        local button_style = (contains(active_items, sprite_name) and "yellow_slot_button" or "recipe_slot_button")
-        local action = (contains(active_items, sprite_name) and "fh_deselect_button" or "fh_select_button")
-        local sprite = ("item/" .. sprite_name)
-        if game.is_valid_sprite_path(sprite) then
+    for name, sprite_name in pairs(items) do
+        local button_style = (contains(active_items, name) and "yellow_slot_button" or "recipe_slot_button")
+        local action = (contains(active_items, name) and "fh_deselect_button" or "fh_select_button")
+        if game.is_valid_sprite_path(sprite_name) then
             button_table.add {
                 type = "sprite-button",
-                sprite = sprite,
+                sprite = sprite_name,
                 tags = {
                     action = action,
-                    item_name = sprite_name
+                    item_name = name
                 },
                 style = button_style
             }
@@ -111,6 +110,7 @@ local function init_global(player)
 end
 
 -- this is run every tick when a filter gui is open to detect vanilla changes
+-- active_items is a list of item names
 local function get_active_items(entity)
     if entity == nil or entity.valid == false then
         return {}
@@ -137,7 +137,7 @@ local function add_items_belt(entity, items, upstream, downstream)
         for i = 1, entity.get_max_transport_line_index() do
             local transport_line = entity.get_transport_line(i)
             for item, _ in pairs(transport_line.get_contents()) do
-                items[item] = item
+                items[item] = "item/" .. item
             end
         end
         if upstream > 0 then
@@ -161,17 +161,17 @@ local function add_items_inserter(entity, items)
             for _, target in pairs(pickup_target_list) do
                 if target.type == "assembling-machine" and target.get_recipe() ~= nil then
                     for _, item in pairs(target.get_recipe().products) do
-                        items[item.name] = item.name
+                        items[item.name] = "item/" .. item.name
                     end
                 end
                 if target.get_output_inventory() ~= nil then
                     for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = item
+                        items[item] = "item/" .. item
                     end
                 end
                 if target.get_burnt_result_inventory() ~= nil then
                     for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-                        items[item] = item
+                        items[item] = "item/" .. item
                     end
                 end
                 if target.type == "transport-belt" then
@@ -185,17 +185,17 @@ local function add_items_inserter(entity, items)
             for _, target in pairs(drop_target_list) do
                 if target.type == "assembling-machine" and target.get_recipe() ~= nil then
                     for _, item in pairs(target.get_recipe().ingredients) do
-                        items[item.name] = item.name
+                        items[item.name] = "item/" .. item.name
                     end
                 end
                 if target.get_output_inventory() ~= nil then
                     for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = item
+                        items[item] = "item/" .. item
                     end
                 end
                 if target.get_fuel_inventory() ~= nil then
                     for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-                        items[item] = item
+                        items[item] = "item/" .. item
                     end
                 end
                 if target.type == "transport-belt" then
@@ -211,7 +211,7 @@ local function add_items_splitter(entity, items)
         for i = 1, entity.get_max_transport_line_index() do
             local transport_line = entity.get_transport_line(i)
             for item, _ in pairs(transport_line.get_contents()) do
-                items[item] = item
+                items[item] = "item/" .. item
             end
         end
         for _, belt in pairs(entity.belt_neighbours.inputs) do
@@ -347,3 +347,7 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
+-- TODO inserter grab off splitter and underground
+-- TODO handle too many ingredients
+-- TODO recently used section
+-- TODO burnt result calculation
