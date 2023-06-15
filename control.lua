@@ -112,6 +112,9 @@ end
 
 -- this is run every tick when a filter gui is open to detect vanilla changes
 local function get_active_items(entity)
+    if entity == nil or entity.valid == false then
+        return {}
+    end
     local active_items = {}
     if entity.filter_slot_count > 0 then
         for i = 1, entity.filter_slot_count do
