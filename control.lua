@@ -51,10 +51,6 @@ local function build_interface(player_index)
         relative_gui_type = defines.relative_gui_type.splitter_gui
     end
 
-    if player_global.entity.type == "pump" then
-        relative_gui_type = defines.relative_gui_type.entity_with_energy_source_gui
-    end
-
     local anchor = {
         gui = relative_gui_type,
         position = defines.relative_gui_position.right
