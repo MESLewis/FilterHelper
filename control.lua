@@ -137,7 +137,7 @@ local function get_active_items(entity)
         return {}
     end
     local active_items = {}
-    if entity.filter_slot_count > 0 then
+    if entity.filter_slot_count > 0 and entity.type ~= "infinity-container" then
         for i = 1, entity.filter_slot_count do ---@type uint
             table.insert(active_items, entity.get_filter(i))
         end
