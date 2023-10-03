@@ -1,7 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.8
-Date: ????
-  Changes:
+Date: 2023-10-03
+  Bugfixes:
+    - Fixed crash when opening infinity chest
+    - Fixed crash when inserter receives a signal with no name
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.7
 Date: 2023-06-16
