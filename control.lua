@@ -265,7 +265,10 @@ local function add_items_circuit(entity, items)
             local signals = entity.get_merged_signals()
             if signals then
                 for _, signal in pairs(signals) do
-                    items[signal.signal.name] = signal.signal.type .. "/" .. signal.signal.name
+                    local signal_id = signal.signal
+                    if signal_id.name then
+                        items[signal_id.name] = signal_id.type .. "/" .. signal_id.name
+                    end
                 end
             end
         end
