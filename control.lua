@@ -197,23 +197,8 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
----Adds to the filter item list based on an entity being taken from
-function FilterHelper.add_items_pickup_target_entity(target, items)
-    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-        for _, item in pairs(target.get_recipe().products) do
-            items[item.name] = "item/" .. item.name
-        end
-    end
-    if target.get_output_inventory() ~= nil then
-        for item, _ in pairs(target.get_output_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
-    end
-    if target.get_burnt_result_inventory() ~= nil then
-        for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
-    end
+---Adds to the filter item list based on an entity being interacted with
+function FilterHelper.add_items_interact_target_entity(target, items)
     if target.type == "transport-belt" then
         FilterHelper.add_items_belt(target, items)
     end
@@ -228,6 +213,53 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     end
 end
 
+function FilterHelper.add_items_burnt_results_entity(entity, items)
+    if not (entity.burner and entity.burner.valid) then return end
+
+    local fuel_categories = entity.burner.fuel_categories
+    for fuel_category, _ in pairs(fuel_categories) do
+        for item_prototype_name, item_prototype in pairs(game.item_prototypes) do
+            if item_prototype.fuel_category == fuel_category then
+                local burnt_result_prototype = item_prototype.burnt_result
+                if burnt_result_prototype then
+                    items[burnt_result_prototype.name] = "item/" .. burnt_result_prototype.name
+                end
+            end
+        end
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being taken from
+function FilterHelper.add_items_pickup_target_entity(target, items)
+    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+        for _, item in pairs(target.get_recipe().products) do
+            items[item.name] = "item/" .. item.name
+        end
+    end
+    if target.get_output_inventory() ~= nil then
+        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    FilterHelper.add_items_burnt_results_entity(target, items)
+    FilterHelper.add_items_interact_target_entity(target, items)
+end
+
+function FilterHelper.add_items_fuel_entity(entity, items)
+    if not (entity.burner and entity.burner.valid) then return end
+
+    local fuel_categories = entity.burner.fuel_categories
+    for fuel_category, _ in pairs(fuel_categories) do
+        for item_prototype_name, item_prototype in pairs(game.item_prototypes) do
+            if item_prototype.fuel_category == fuel_category then
+                items[item_prototype_name] = "item/" .. item_prototype_name
+            end
+        end
+    end
+end
+
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being given to
@@ -237,28 +269,8 @@ function FilterHelper.add_items_drop_target_entity(target, items)
             items[item.name] = "item/" .. item.name
         end
     end
-    if target.get_output_inventory() ~= nil then
-        for item, _ in pairs(target.get_output_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
-    end
-    if target.get_fuel_inventory() ~= nil then
-        for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
-    end
-    if target.type == "transport-belt" then
-        FilterHelper.add_items_belt(target, items)
-    end
-    if target.type == "splitter" then
-        FilterHelper.add_items_splitter(target, items)
-    end
-    if target.type == "underground-belt" then
-        FilterHelper.add_items_underground_belt(target, items)
-    end
-    if target.type == "loader" or target.type == "loader-1x1" then
-        FilterHelper.add_items_loader(target, items)
-    end
+    FilterHelper.add_items_fuel_entity(target, items)
+    FilterHelper.add_items_interact_target_entity(target, items)
 end
 
 ---@param entity LuaEntity
@@ -487,4 +499,3 @@ end)
 -- TODO options for what things are considered. Chests, transport lines, etc
 -- TODO handle too many ingredients
 -- TODO recently used section
--- TODO burnt result calculation
