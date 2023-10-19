@@ -183,6 +183,9 @@ local function add_items_belt(entity, items, upstream, downstream)
     end
 end
 
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being taken from
 local function add_items_pickup_target_entity(target, items)
     if target.type == "assembling-machine" and target.get_recipe() ~= nil then
         for _, item in pairs(target.get_recipe().products) do
@@ -204,6 +207,9 @@ local function add_items_pickup_target_entity(target, items)
     end
 end
 
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being given to
 local function add_items_drop_target_entity(target, items)
     if target.type == "assembling-machine" and target.get_recipe() ~= nil then
         for _, item in pairs(target.get_recipe().ingredients) do
@@ -227,6 +233,7 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list for an inserter
 local function add_items_inserter(entity, items)
     if entity.type == "inserter" and entity.filter_slot_count > 0 then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
@@ -266,6 +273,7 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list for a splitter
 local function add_items_splitter(entity, items)
     if entity.type == "splitter" then
         add_items_transport_belt_connectable(entity, items)
@@ -274,6 +282,7 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list for a loader
 local function add_items_loader(entity, items)
     if entity.type ~= "loader" and entity.type ~= "loader-1x1" then return end
 
@@ -292,6 +301,7 @@ end
 
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
+---Adds to the filter item list based on the connected circuit signals
 local function add_items_circuit(entity, items)
     if entity.get_control_behavior() then
         local control = entity.get_control_behavior()
@@ -315,6 +325,7 @@ end
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
+---Adds to the filter item list for the given entity
 local function add_items(entity, items)
     if not entity or not entity.valid then
         return {}
