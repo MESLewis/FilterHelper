@@ -213,17 +213,34 @@ function FilterHelper.add_items_interact_target_entity(target, items)
     end
 end
 
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the result of burning fuel the entity burns
 function FilterHelper.add_items_burnt_results_entity(entity, items)
     if not (entity.burner and entity.burner.valid) then return end
 
     local fuel_categories = entity.burner.fuel_categories
     for fuel_category, _ in pairs(fuel_categories) do
-        for item_prototype_name, item_prototype in pairs(game.item_prototypes) do
+        for _, item_prototype in pairs(game.item_prototypes) do
             if item_prototype.fuel_category == fuel_category then
                 local burnt_result_prototype = item_prototype.burnt_result
                 if burnt_result_prototype then
                     items[burnt_result_prototype.name] = "item/" .. burnt_result_prototype.name
                 end
+            end
+        end
+    end
+end
+
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the result of rocket launches
+---Because any rocket silo can launch any item, it's not possible to filter
+---this to a specific launch recipe (i.e. satellite -> space science or space science -> fish)
+function FilterHelper.add_items_rocket_launch_products_entity(items)
+    for _, item_prototype in pairs(game.item_prototypes) do
+        if item_prototype.rocket_launch_products then
+            for _, rocket_launch_product_prototype in pairs(item_prototype.rocket_launch_products) do
+                items[rocket_launch_product_prototype.name] = "item/" .. rocket_launch_product_prototype.name
             end
         end
     end
@@ -238,6 +255,9 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
             items[item.name] = "item/" .. item.name
         end
     end
+    if target.type == "rocket-silo" then
+        FilterHelper.add_items_rocket_launch_products_entity(items)
+    end
     if target.get_output_inventory() ~= nil then
         for item, _ in pairs(target.get_output_inventory().get_contents()) do
             items[item] = "item/" .. item
@@ -247,6 +267,9 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     FilterHelper.add_items_interact_target_entity(target, items)
 end
 
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the fuel the entity burns
 function FilterHelper.add_items_fuel_entity(entity, items)
     if not (entity.burner and entity.burner.valid) then return end
 
@@ -264,7 +287,7 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
-    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+    if (target.type == "assembling-machine" or target.type == "rocket-silo") and target.get_recipe() ~= nil then
         for _, item in pairs(target.get_recipe().ingredients) do
             items[item.name] = "item/" .. item.name
         end
