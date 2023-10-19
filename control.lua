@@ -425,6 +425,8 @@ end)
 
 -- we need to close the ui on click and open it a tick later
 -- to visually update the filter ui
+-- if https://forums.factorio.com/viewtopic.php?f=7&t=106300 gets addressed,
+-- this close/reopen GUI business can be removed
 script.on_event(defines.events.on_tick, function(event)
     for _, player in pairs(game.players) do
         local player_global = global.players[player.index]
