@@ -223,6 +223,9 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "underground-belt" then
         FilterHelper.add_items_underground_belt(target, items)
     end
+    if target.type == "loader" or target.type == "loader-1x1" then
+        FilterHelper.add_items_loader(target, items)
+    end
 end
 
 ---@param entity LuaEntity
@@ -252,6 +255,9 @@ function FilterHelper.add_items_drop_target_entity(target, items)
     end
     if target.type == "underground-belt" then
         FilterHelper.add_items_underground_belt(target, items)
+    end
+    if target.type == "loader" or target.type == "loader-1x1" then
+        FilterHelper.add_items_loader(target, items)
     end
 end
 
