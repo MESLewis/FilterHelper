@@ -51,6 +51,10 @@ local function build_interface(player_index)
         relative_gui_type = defines.relative_gui_type.splitter_gui
     end
 
+    if player_global.entity.type == "loader" or player_global.entity.type == "loader-1x1" then
+        relative_gui_type = defines.relative_gui_type.loader_gui
+    end
+
     local anchor = {
         gui = relative_gui_type,
         position = defines.relative_gui_position.right
@@ -179,6 +183,48 @@ local function add_items_belt(entity, items, upstream, downstream)
     end
 end
 
+local function add_items_pickup_target_entity(target, items)
+    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+        for _, item in pairs(target.get_recipe().products) do
+            items[item.name] = "item/" .. item.name
+        end
+    end
+    if target.get_output_inventory() ~= nil then
+        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    if target.get_burnt_result_inventory() ~= nil then
+        for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    if target.type == "transport-belt" then
+        add_items_belt(target, items)
+    end
+end
+
+local function add_items_drop_target_entity(target, items)
+    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+        for _, item in pairs(target.get_recipe().ingredients) do
+            items[item.name] = "item/" .. item.name
+        end
+    end
+    if target.get_output_inventory() ~= nil then
+        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    if target.get_fuel_inventory() ~= nil then
+        for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    if target.type == "transport-belt" then
+        add_items_belt(target, items)
+    end
+end
+
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 local function add_items_inserter(entity, items)
@@ -187,48 +233,14 @@ local function add_items_inserter(entity, items)
 
         if #pickup_target_list > 0 then
             for _, target in pairs(pickup_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().products) do
-                        items[item.name] = "item/" .. item.name
-                    end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.get_burnt_result_inventory() ~= nil then
-                    for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.type == "transport-belt" then
-                    add_items_belt(target, items)
-                end
+                add_items_pickup_target_entity(target, items)
             end
         end
 
         local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
         if #drop_target_list > 0 then
             for _, target in pairs(drop_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().ingredients) do
-                        items[item.name] = "item/" .. item.name
-                    end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.get_fuel_inventory() ~= nil then
-                    for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.type == "transport-belt" then
-                    add_items_belt(target, items)
-                end
+                add_items_drop_target_entity(target, items)
             end
         end
     end
@@ -236,19 +248,44 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list based on the connected transport belts
+local function add_items_transport_belt_connectable(entity, items)
+    for i = 1, entity.get_max_transport_line_index() do ---@type uint
+        local transport_line = entity.get_transport_line(i)
+        for item, _ in pairs(transport_line.get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    for _, belt in pairs(entity.belt_neighbours.inputs) do
+        add_items_belt(belt, items, nil, 0)
+    end
+    for _, belt in pairs(entity.belt_neighbours.outputs) do
+        add_items_belt(belt, items, 0, nil)
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
 local function add_items_splitter(entity, items)
     if entity.type == "splitter" then
-        for i = 1, entity.get_max_transport_line_index() do ---@type uint
-            local transport_line = entity.get_transport_line(i)
-            for item, _ in pairs(transport_line.get_contents()) do
-                items[item] = "item/" .. item
-            end
-        end
-        for _, belt in pairs(entity.belt_neighbours.inputs) do
-            add_items_belt(belt, items, nil, 0)
-        end
-        for _, belt in pairs(entity.belt_neighbours.outputs) do
-            add_items_belt(belt, items, 0, nil)
+        add_items_transport_belt_connectable(entity, items)
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+local function add_items_loader(entity, items)
+    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then return end
+
+    add_items_transport_belt_connectable(entity, items)
+
+    if entity.loader_container and entity.loader_container.valid then
+        if entity.loader_type == "input" then
+            game.print("loader input")
+            add_items_drop_target_entity(entity.loader_container, items)
+        elseif entity.loader_type == "output" then
+            game.print("loader output")
+            add_items_pickup_target_entity(entity.loader_container, items)
         end
     end
 end
@@ -284,6 +321,7 @@ local function add_items(entity, items)
     end
     add_items_inserter(entity, items)
     add_items_splitter(entity, items)
+    add_items_loader(entity, items)
     --TODO have a second column for signals
     add_items_circuit(entity, items)
     return items
