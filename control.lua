@@ -132,11 +132,13 @@ local function init_global(player_index)
     }
 end
 
+local FilterHelper = {}
+
 -- this is run every tick when a filter gui is open to detect vanilla changes
 -- active_items is a list of item names
 ---@param entity LuaEntity?
 ---@return table<string>
-local function get_active_items(entity)
+function FilterHelper.get_active_items(entity)
     if not entity or not entity.valid then
         return {}
     end
@@ -158,7 +160,8 @@ end
 ---@param items table<string, SpritePath>
 ---@param upstream uint?
 ---@param downstream uint?
-local function add_items_belt(entity, items, upstream, downstream)
+---Adds to the filter item list for a transport belt
+function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     --TODO user config for this
     upstream = upstream or 10
     downstream = downstream or 10
@@ -172,12 +175,12 @@ local function add_items_belt(entity, items, upstream, downstream)
         end
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
-                add_items_belt(belt, items, upstream - 1, 0)
+                FilterHelper.add_items_belt(belt, items, upstream - 1, 0)
             end
         end
         if downstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.outputs) do
-                add_items_belt(belt, items, 0, downstream - 1)
+                FilterHelper.add_items_belt(belt, items, 0, downstream - 1)
             end
         end
     end
@@ -185,8 +188,17 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list for an underground belt
+function FilterHelper.add_items_underground_belt(entity, items)
+    if entity.type ~= "underground-belt" then return end
+
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being taken from
-local function add_items_pickup_target_entity(target, items)
+function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "assembling-machine" and target.get_recipe() ~= nil then
         for _, item in pairs(target.get_recipe().products) do
             items[item.name] = "item/" .. item.name
@@ -203,14 +215,20 @@ local function add_items_pickup_target_entity(target, items)
         end
     end
     if target.type == "transport-belt" then
-        add_items_belt(target, items)
+        FilterHelper.add_items_belt(target, items)
+    end
+    if target.type == "splitter" then
+        FilterHelper.add_items_splitter(target, items)
+    end
+    if target.type == "underground-belt" then
+        FilterHelper.add_items_underground_belt(target, items)
     end
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being given to
-local function add_items_drop_target_entity(target, items)
+function FilterHelper.add_items_drop_target_entity(target, items)
     if target.type == "assembling-machine" and target.get_recipe() ~= nil then
         for _, item in pairs(target.get_recipe().ingredients) do
             items[item.name] = "item/" .. item.name
@@ -227,27 +245,33 @@ local function add_items_drop_target_entity(target, items)
         end
     end
     if target.type == "transport-belt" then
-        add_items_belt(target, items)
+        FilterHelper.add_items_belt(target, items)
+    end
+    if target.type == "splitter" then
+        FilterHelper.add_items_splitter(target, items)
+    end
+    if target.type == "underground-belt" then
+        FilterHelper.add_items_underground_belt(target, items)
     end
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for an inserter
-local function add_items_inserter(entity, items)
+function FilterHelper.add_items_inserter(entity, items)
     if entity.type == "inserter" and entity.filter_slot_count > 0 then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
 
         if #pickup_target_list > 0 then
             for _, target in pairs(pickup_target_list) do
-                add_items_pickup_target_entity(target, items)
+                FilterHelper.add_items_pickup_target_entity(target, items)
             end
         end
 
         local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
         if #drop_target_list > 0 then
             for _, target in pairs(drop_target_list) do
-                add_items_drop_target_entity(target, items)
+                FilterHelper.add_items_drop_target_entity(target, items)
             end
         end
     end
@@ -256,7 +280,7 @@ end
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on the connected transport belts
-local function add_items_transport_belt_connectable(entity, items)
+function FilterHelper.add_items_transport_belt_connectable(entity, items)
     for i = 1, entity.get_max_transport_line_index() do ---@type uint
         local transport_line = entity.get_transport_line(i)
         for item, _ in pairs(transport_line.get_contents()) do
@@ -264,37 +288,35 @@ local function add_items_transport_belt_connectable(entity, items)
         end
     end
     for _, belt in pairs(entity.belt_neighbours.inputs) do
-        add_items_belt(belt, items, nil, 0)
+        FilterHelper.add_items_belt(belt, items, nil, 0)
     end
     for _, belt in pairs(entity.belt_neighbours.outputs) do
-        add_items_belt(belt, items, 0, nil)
+        FilterHelper.add_items_belt(belt, items, 0, nil)
     end
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for a splitter
-local function add_items_splitter(entity, items)
-    if entity.type == "splitter" then
-        add_items_transport_belt_connectable(entity, items)
-    end
+function FilterHelper.add_items_splitter(entity, items)
+    if entity.type ~= "splitter" then return end
+    
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for a loader
-local function add_items_loader(entity, items)
+function FilterHelper.add_items_loader(entity, items)
     if entity.type ~= "loader" and entity.type ~= "loader-1x1" then return end
 
-    add_items_transport_belt_connectable(entity, items)
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
 
     if entity.loader_container and entity.loader_container.valid then
         if entity.loader_type == "input" then
-            game.print("loader input")
-            add_items_drop_target_entity(entity.loader_container, items)
+            FilterHelper.add_items_drop_target_entity(entity.loader_container, items)
         elseif entity.loader_type == "output" then
-            game.print("loader output")
-            add_items_pickup_target_entity(entity.loader_container, items)
+            FilterHelper.add_items_pickup_target_entity(entity.loader_container, items)
         end
     end
 end
@@ -302,7 +324,7 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
 ---Adds to the filter item list based on the connected circuit signals
-local function add_items_circuit(entity, items)
+function FilterHelper.add_items_circuit(entity, items)
     if entity.get_control_behavior() then
         local control = entity.get_control_behavior()
         if control and (
@@ -326,15 +348,15 @@ end
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
 ---Adds to the filter item list for the given entity
-local function add_items(entity, items)
+function FilterHelper.add_items(entity, items)
     if not entity or not entity.valid then
         return {}
     end
-    add_items_inserter(entity, items)
-    add_items_splitter(entity, items)
-    add_items_loader(entity, items)
+    FilterHelper.add_items_inserter(entity, items)
+    FilterHelper.add_items_splitter(entity, items)
+    FilterHelper.add_items_loader(entity, items)
     --TODO have a second column for signals
-    add_items_circuit(entity, items)
+    FilterHelper.add_items_circuit(entity, items)
     return items
 end
 
@@ -358,9 +380,9 @@ script.on_event(defines.events.on_gui_opened, function(event)
     local entity = event.entity
     if entity ~= nil then
         player_global.entity = entity
-        local items = add_items(entity, {})
+        local items = FilterHelper.add_items(entity, {})
         player_global.items = items
-        local active_items = get_active_items(entity)
+        local active_items = FilterHelper.get_active_items(entity)
         player_global.active_items = active_items
         if next(items) ~= nil or next(active_items) ~= nil then
             build_interface(event.player_index)
@@ -447,7 +469,7 @@ script.on_event(defines.events.on_tick, function(event)
         --update my gui when vanilla filter changes
         if player_global.elements.main_frame and player_global.elements.main_frame.valid then
             local entity = player_global.entity
-            local active_items = get_active_items(entity)
+            local active_items = FilterHelper.get_active_items(entity)
             if #active_items ~= #player_global.active_items then
                 player_global.active_items = active_items
                 build_sprite_buttons(player.index)
@@ -457,7 +479,6 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
--- TODO inserter grab off splitter and underground
 -- TODO handle too many ingredients
 -- TODO recently used section
 -- TODO burnt result calculation
