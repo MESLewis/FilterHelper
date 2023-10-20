@@ -34,7 +34,7 @@ local function build_sprite_buttons(player_index)
     end
 end
 
-local buttons_per_column = 10 -- the maximum number of sprite-buttons per column in the gui
+local buttons_per_column = 7 -- the maximum number of sprite-buttons per column in the gui
 local max_columns = 10 -- the maximum number of columns to use for the gui
 
 ---@param player_index uint
