@@ -34,8 +34,8 @@ local function build_sprite_buttons(player_index)
     end
 end
 
-local buttons_per_column = 10
-local max_columns = 10
+local buttons_per_column = 10 -- the maximum number of sprite-buttons per column in the gui
+local max_columns = 10 -- the maximum number of columns to use for the gui
 
 ---@param player_index uint
 local function build_interface(player_index)
@@ -187,8 +187,8 @@ end
 ---Adds to the filter item list for a transport belt
 function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     --TODO user config for this
-    upstream = upstream or 10
-    downstream = downstream or 10
+    upstream = upstream or 10 -- number of belts upstream (inputs) of this belt to check for filter items
+    downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
     if entity.type == "transport-belt" then
         for i = 1, entity.get_max_transport_line_index() do ---@type uint
