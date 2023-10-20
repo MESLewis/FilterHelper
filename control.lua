@@ -228,13 +228,13 @@ function FilterHelper.add_items_interact_target_entity(target, items)
         FilterHelper.add_items_belt(target, items)
     end
     if target.type == "splitter" then
-        FilterHelper.add_items_splitter(target, items)
+        FilterHelper.add_items_transport_belt_connectable(target, items)
     end
     if target.type == "underground-belt" then
-        FilterHelper.add_items_underground_belt(target, items)
+        FilterHelper.add_items_transport_belt_connectable(target, items)
     end
     if target.type == "loader" or target.type == "loader-1x1" then
-        FilterHelper.add_items_loader(target, items)
+        FilterHelper.add_items_transport_belt_connectable(target, items)
     end
 end
 
