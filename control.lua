@@ -17,7 +17,6 @@ local function build_sprite_buttons(player_index)
     local items = player_global.items
     local active_items = player_global.active_items
     for name, sprite_name in pairs(items) do
-        game.print(name.." "..sprite_name)
         local button_style = (contains(active_items, name) and "yellow_slot_button" or "recipe_slot_button")
         local action = (contains(active_items, name) and "fh_deselect_button" or "fh_select_button")
         if game.is_valid_sprite_path(sprite_name) then
