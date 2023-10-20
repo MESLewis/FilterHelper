@@ -17,6 +17,7 @@ local function build_sprite_buttons(player_index)
     local items = player_global.items
     local active_items = player_global.active_items
     for name, sprite_name in pairs(items) do
+        game.print(name.." "..sprite_name)
         local button_style = (contains(active_items, name) and "yellow_slot_button" or "recipe_slot_button")
         local action = (contains(active_items, name) and "fh_deselect_button" or "fh_select_button")
         if game.is_valid_sprite_path(sprite_name) then
@@ -275,8 +276,10 @@ end
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-        for _, item in pairs(target.get_recipe().products) do
-            items[item.name] = "item/" .. item.name
+        for _, product in pairs(target.get_recipe().products) do
+            if product.type == "item" then
+                items[product.name] = "item/" .. product.name
+            end
         end
     end
     if target.type == "rocket-silo" then
@@ -312,8 +315,10 @@ end
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
     if (target.type == "assembling-machine" or target.type == "rocket-silo") and target.get_recipe() ~= nil then
-        for _, item in pairs(target.get_recipe().ingredients) do
-            items[item.name] = "item/" .. item.name
+        for _, ingredient in pairs(target.get_recipe().ingredients) do
+            if ingredient.type == "item" then
+                items[ingredient.name] = "item/" .. ingredient.name
+            end
         end
     end
     FilterHelper.add_items_fuel_entity(target, items)
