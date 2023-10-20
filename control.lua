@@ -33,6 +33,9 @@ local function build_sprite_buttons(player_index)
     end
 end
 
+local buttons_per_column = 10
+local max_columns = 10
+
 ---@param player_index uint
 local function build_interface(player_index)
     local player_global = global.players[player_index]
@@ -62,20 +65,26 @@ local function build_interface(player_index)
 
     ---@type LuaGuiElement
     local main_frame = player.gui.relative.add{
-        type = "scroll-pane",
+        type = "frame",
         name = "main_frame",
-        anchor = anchor
+        anchor = anchor,
+        style = "fh_content_frame"
     }
+    -- limit the height of the relative gui to fit 10 buttons per column
+    -- if there are too many buttons, the scroll-pane allows them to be scrolled
+    -- to be visible
+    main_frame.style.maximal_height = buttons_per_column * 44
+    main_frame.style.horizontally_stretchable = false
 
     player_global.elements.main_frame = main_frame
 
     ---@type LuaGuiElement
     local content_frame = main_frame.add{
-        type="frame",
+        type="scroll-pane",
         name="content_frame",
         direction="vertical",
-        style = "fh_content_frame"
     }
+    content_frame.style.top_margin = 8
 
     ---@type LuaGuiElement
     local button_frame = content_frame.add{
@@ -84,11 +93,25 @@ local function build_interface(player_index)
         direction="vertical",
         style = "fh_deep_frame"
     }
+
+    -- use multiple columns if there are lots of buttons so its less
+    -- likely to require the scroll pane for large amounts of found
+    -- items to filter
+    -- the scroll bar may still appear because the number of columns
+    -- is capped to prevent the relative gui taking up too much horizontal space
+    local player_global = global.players[player_index]
+    local items = player_global.items
+    local item_count = 0
+    for _ in pairs(items) do item_count = item_count + 1 end
+    local columns = math.ceil(item_count / buttons_per_column)
+    columns = math.min(columns, max_columns)
+    columns = math.max(columns, 1)
+
     ---@type LuaGuiElement
     local button_table = button_frame.add{
         type="table",
         name="button_table",
-        column_count=1,
+        column_count=columns,
         style="filter_slot_table"
     }
     player_global.elements.button_table = button_table
@@ -520,5 +543,4 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
--- TODO handle too many ingredients
 -- TODO recently used section

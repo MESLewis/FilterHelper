@@ -6,6 +6,7 @@ Date: ????
     - Add item suggestions for inserters grabbing from/setting on underground belts, splitters, and loaders
     - Add rocket launch silo suggestions
     - Add fuel / burnt fuel result suggestions
+    - Use multiple columns when there are lots of item suggestions
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.8
 Date: 2023-10-03
