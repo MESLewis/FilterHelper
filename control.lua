@@ -27,6 +27,7 @@ local function build_sprite_buttons(player_index)
                     action = action,
                     item_name = name ---@type string
                 },
+                tooltip = game.item_prototypes[name].localised_name,
                 style = button_style
             }
         end
