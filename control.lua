@@ -45,11 +45,12 @@ local function build_interface(player_index)
         player_global.elements.main_frame.destroy()
     end
 
-    local relative_gui_type = defines.relative_gui_type.inserter_gui
+    local guis_table = {
+        ["splitter"] = defines.relative_gui_type.splitter_gui,
+        ["logistic-container"] = defines.relative_gui_type.container_gui,
+    }
 
-    if player_global.entity.type == "splitter" then
-        relative_gui_type = defines.relative_gui_type.splitter_gui
-    end
+    local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
 
     local anchor = {
         gui = relative_gui_type,
@@ -181,8 +182,9 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
-local function add_items_inserter(entity, items)
-    if entity.type == "inserter" and entity.filter_slot_count > 0 then
+---@param ignore_slots boolean?
+local function add_items_inserter(entity, items, ignore_slots)
+    if entity.type == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
 
         if #pickup_target_list > 0 then
@@ -276,6 +278,22 @@ local function add_items_circuit(entity, items)
 end
 
 ---@param entity LuaEntity
+---@param items table <string, SpritePath>
+local function add_items_chest(entity, items)
+    if entity.type == "logistic-container" and entity.prototype.logistic_mode == "storage" then
+        local bb = entity.bounding_box
+        local distance = 3
+        local area = { { bb.left_top.x - distance, bb.left_top.y - distance }, { bb.right_bottom.x + distance, bb.right_bottom.y + distance } }
+
+        for _, inserter in pairs(entity.surface.find_entities_filtered { type = "inserter", area = area }) do
+            if inserter.pickup_target == entity or inserter.drop_target == entity then
+                add_items_inserter(inserter, items, true)
+            end
+        end
+    end
+end
+
+---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
 local function add_items(entity, items)
@@ -286,6 +304,7 @@ local function add_items(entity, items)
     add_items_splitter(entity, items)
     --TODO have a second column for signals
     add_items_circuit(entity, items)
+    add_items_chest(entity, items)
     return items
 end
 
