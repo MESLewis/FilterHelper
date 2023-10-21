@@ -2,6 +2,7 @@
 Version: 0.1.9
 Date: ????
   Changes:
+    - Added support for logistic storage chests
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.8
 Date: 2023-10-03
