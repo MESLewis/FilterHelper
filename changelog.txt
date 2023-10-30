@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.9
 Date: ????
-  Changes:
+  Bugfixes:
+    - Fixed crash when selecting a fluid from a signal as a filter by no longer showing non-item signals from the circuit network
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.8
 Date: 2023-10-03

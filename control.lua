@@ -266,7 +266,7 @@ local function add_items_circuit(entity, items)
             if signals then
                 for _, signal in pairs(signals) do
                     local signal_id = signal.signal
-                    if signal_id.name then
+                    if signal_id.name and signal_id.type == "item" then
                         items[signal_id.name] = signal_id.type .. "/" .. signal_id.name
                     end
                 end
