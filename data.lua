@@ -3,8 +3,7 @@ local styles = data.raw["gui-style"].default
 --TODO use styling mod
 styles["fh_content_frame"] = {
     type = "frame_style",
-    parent = "inside_shallow_frame_with_padding",
-    vertically_stretchable = "on"
+    parent = "frame",
 }
 
 styles["fh_deep_frame"] = {
