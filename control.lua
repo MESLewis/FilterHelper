@@ -27,11 +27,15 @@ local function build_sprite_buttons(player_index)
                     action = action,
                     item_name = name ---@type string
                 },
+                tooltip = game.item_prototypes[name].localised_name,
                 style = button_style
             }
         end
     end
 end
+
+local buttons_per_column = 7 -- the maximum number of sprite-buttons per column in the gui
+local max_columns = 10 -- the maximum number of columns to use for the gui
 
 ---@param player_index uint
 local function build_interface(player_index)
@@ -52,6 +56,10 @@ local function build_interface(player_index)
 
     local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
 
+    if player_global.entity.type == "loader" or player_global.entity.type == "loader-1x1" then
+        relative_gui_type = defines.relative_gui_type.loader_gui
+    end
+
     local anchor = {
         gui = relative_gui_type,
         position = defines.relative_gui_position.right
@@ -59,20 +67,26 @@ local function build_interface(player_index)
 
     ---@type LuaGuiElement
     local main_frame = player.gui.relative.add{
-        type = "scroll-pane",
+        type = "frame",
         name = "main_frame",
-        anchor = anchor
+        anchor = anchor,
+        style = "fh_content_frame"
     }
+    -- limit the height of the relative gui to fit 10 buttons per column
+    -- if there are too many buttons, the scroll-pane allows them to be scrolled
+    -- to be visible
+    main_frame.style.maximal_height = buttons_per_column * 44
+    main_frame.style.horizontally_stretchable = false
 
     player_global.elements.main_frame = main_frame
 
     ---@type LuaGuiElement
     local content_frame = main_frame.add{
-        type="frame",
+        type="scroll-pane",
         name="content_frame",
         direction="vertical",
-        style = "fh_content_frame"
     }
+    content_frame.style.top_margin = 8
 
     ---@type LuaGuiElement
     local button_frame = content_frame.add{
@@ -81,11 +95,25 @@ local function build_interface(player_index)
         direction="vertical",
         style = "fh_deep_frame"
     }
+
+    -- use multiple columns if there are lots of buttons so its less
+    -- likely to require the scroll pane for large amounts of found
+    -- items to filter
+    -- the scroll bar may still appear because the number of columns
+    -- is capped to prevent the relative gui taking up too much horizontal space
+    local player_global = global.players[player_index]
+    local items = player_global.items
+    local item_count = 0
+    for _ in pairs(items) do item_count = item_count + 1 end
+    local columns = math.ceil(item_count / buttons_per_column)
+    columns = math.min(columns, max_columns)
+    columns = math.max(columns, 1)
+
     ---@type LuaGuiElement
     local button_table = button_frame.add{
         type="table",
         name="button_table",
-        column_count=1,
+        column_count=columns,
         style="filter_slot_table"
     }
     player_global.elements.button_table = button_table
@@ -129,16 +157,19 @@ local function init_global(player_index)
     }
 end
 
+local FilterHelper = {}
+
 -- this is run every tick when a filter gui is open to detect vanilla changes
 -- active_items is a list of item names
 ---@param entity LuaEntity?
 ---@return table<string>
-local function get_active_items(entity)
+function FilterHelper.get_active_items(entity)
     if not entity or not entity.valid then
         return {}
     end
     local active_items = {}
-    if entity.filter_slot_count > 0 and entity.type ~= "infinity-container" then
+    -- skip infinity containers and logistic-containers since we don't care about filters for them
+    if entity.filter_slot_count > 0 and entity.type ~= "infinity-container" and entity.type ~= "logistic-container" then
         for i = 1, entity.filter_slot_count do ---@type uint
             table.insert(active_items, entity.get_filter(i))
         end
@@ -155,10 +186,11 @@ end
 ---@param items table<string, SpritePath>
 ---@param upstream uint?
 ---@param downstream uint?
-local function add_items_belt(entity, items, upstream, downstream)
+---Adds to the filter item list for a transport belt
+function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     --TODO user config for this
-    upstream = upstream or 10
-    downstream = downstream or 10
+    upstream = upstream or 10 -- number of belts upstream (inputs) of this belt to check for filter items
+    downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
     if entity.type == "transport-belt" then
         for i = 1, entity.get_max_transport_line_index() do ---@type uint
@@ -169,12 +201,12 @@ local function add_items_belt(entity, items, upstream, downstream)
         end
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
-                add_items_belt(belt, items, upstream - 1, 0)
+                FilterHelper.add_items_belt(belt, items, upstream - 1, 0)
             end
         end
         if downstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.outputs) do
-                add_items_belt(belt, items, 0, downstream - 1)
+                FilterHelper.add_items_belt(belt, items, 0, downstream - 1)
             end
         end
     end
@@ -182,55 +214,136 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
+---Adds to the filter item list for an underground belt
+function FilterHelper.add_items_underground_belt(entity, items)
+    if entity.type ~= "underground-belt" then return end
+
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being interacted with
+function FilterHelper.add_items_interact_target_entity(target, items)
+    if target.type == "transport-belt" then
+        FilterHelper.add_items_belt(target, items)
+    end
+    if target.type == "splitter" then
+        FilterHelper.add_items_transport_belt_connectable(target, items)
+    end
+    if target.type == "underground-belt" then
+        FilterHelper.add_items_transport_belt_connectable(target, items)
+    end
+    if target.type == "loader" or target.type == "loader-1x1" then
+        FilterHelper.add_items_transport_belt_connectable(target, items)
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the result of burning fuel the entity burns
+function FilterHelper.add_items_burnt_results_entity(entity, items)
+    if not (entity.burner and entity.burner.valid) then return end
+
+    local fuel_categories = entity.burner.fuel_categories
+    for fuel_category, _ in pairs(fuel_categories) do
+        for _, item_prototype in pairs(game.item_prototypes) do
+            if item_prototype.fuel_category == fuel_category then
+                local burnt_result_prototype = item_prototype.burnt_result
+                if burnt_result_prototype then
+                    items[burnt_result_prototype.name] = "item/" .. burnt_result_prototype.name
+                end
+            end
+        end
+    end
+end
+
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the result of rocket launches
+---Because any rocket silo can launch any item, it's not possible to filter
+---this to a specific launch recipe (i.e. satellite -> space science or space science -> fish)
+function FilterHelper.add_items_rocket_launch_products_entity(items)
+    for _, item_prototype in pairs(game.item_prototypes) do
+        if item_prototype.rocket_launch_products then
+            for _, rocket_launch_product_prototype in pairs(item_prototype.rocket_launch_products) do
+                items[rocket_launch_product_prototype.name] = "item/" .. rocket_launch_product_prototype.name
+            end
+        end
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being taken from
+function FilterHelper.add_items_pickup_target_entity(target, items)
+    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
+        for _, product in pairs(target.get_recipe().products) do
+            if product.type == "item" then
+                items[product.name] = "item/" .. product.name
+            end
+        end
+    end
+    if target.type == "rocket-silo" then
+        FilterHelper.add_items_rocket_launch_products_entity(items)
+    end
+    if target.get_output_inventory() ~= nil then
+        for item, _ in pairs(target.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+    FilterHelper.add_items_burnt_results_entity(target, items)
+    FilterHelper.add_items_interact_target_entity(target, items)
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on the fuel the entity burns
+function FilterHelper.add_items_fuel_entity(entity, items)
+    if not (entity.burner and entity.burner.valid) then return end
+
+    local fuel_categories = entity.burner.fuel_categories
+    for fuel_category, _ in pairs(fuel_categories) do
+        for item_prototype_name, item_prototype in pairs(game.item_prototypes) do
+            if item_prototype.fuel_category == fuel_category then
+                items[item_prototype_name] = "item/" .. item_prototype_name
+            end
+        end
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list based on an entity being given to
+function FilterHelper.add_items_drop_target_entity(target, items)
+    if (target.type == "assembling-machine" or target.type == "rocket-silo") and target.get_recipe() ~= nil then
+        for _, ingredient in pairs(target.get_recipe().ingredients) do
+            if ingredient.type == "item" then
+                items[ingredient.name] = "item/" .. ingredient.name
+            end
+        end
+    end
+    FilterHelper.add_items_fuel_entity(target, items)
+    FilterHelper.add_items_interact_target_entity(target, items)
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
 ---@param ignore_slots boolean?
-local function add_items_inserter(entity, items, ignore_slots)
+---Adds to the filter item list for an inserter
+function FilterHelper.add_items_inserter(entity, items, ignore_slots)
     if entity.type == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
 
         if #pickup_target_list > 0 then
             for _, target in pairs(pickup_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().products) do
-                        items[item.name] = "item/" .. item.name
-                    end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.get_burnt_result_inventory() ~= nil then
-                    for item, _ in pairs(target.get_burnt_result_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.type == "transport-belt" then
-                    add_items_belt(target, items)
-                end
+                FilterHelper.add_items_pickup_target_entity(target, items)
             end
         end
 
         local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
         if #drop_target_list > 0 then
             for _, target in pairs(drop_target_list) do
-                if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-                    for _, item in pairs(target.get_recipe().ingredients) do
-                        items[item.name] = "item/" .. item.name
-                    end
-                end
-                if target.get_output_inventory() ~= nil then
-                    for item, _ in pairs(target.get_output_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.get_fuel_inventory() ~= nil then
-                    for item, _ in pairs(target.get_fuel_inventory().get_contents()) do
-                        items[item] = "item/" .. item
-                    end
-                end
-                if target.type == "transport-belt" then
-                    add_items_belt(target, items)
-                end
+                FilterHelper.add_items_drop_target_entity(target, items)
             end
         end
     end
@@ -238,26 +351,52 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
-local function add_items_splitter(entity, items)
-    if entity.type == "splitter" then
-        for i = 1, entity.get_max_transport_line_index() do ---@type uint
-            local transport_line = entity.get_transport_line(i)
-            for item, _ in pairs(transport_line.get_contents()) do
-                items[item] = "item/" .. item
-            end
+---Adds to the filter item list based on the connected transport belts
+function FilterHelper.add_items_transport_belt_connectable(entity, items)
+    for i = 1, entity.get_max_transport_line_index() do ---@type uint
+        local transport_line = entity.get_transport_line(i)
+        for item, _ in pairs(transport_line.get_contents()) do
+            items[item] = "item/" .. item
         end
-        for _, belt in pairs(entity.belt_neighbours.inputs) do
-            add_items_belt(belt, items, nil, 0)
-        end
-        for _, belt in pairs(entity.belt_neighbours.outputs) do
-            add_items_belt(belt, items, 0, nil)
+    end
+    for _, belt in pairs(entity.belt_neighbours.inputs) do
+        FilterHelper.add_items_belt(belt, items, nil, 0)
+    end
+    for _, belt in pairs(entity.belt_neighbours.outputs) do
+        FilterHelper.add_items_belt(belt, items, 0, nil)
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list for a splitter
+function FilterHelper.add_items_splitter(entity, items)
+    if entity.type ~= "splitter" then return end
+    
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
+end
+
+---@param entity LuaEntity
+---@param items table<string, SpritePath>
+---Adds to the filter item list for a loader
+function FilterHelper.add_items_loader(entity, items)
+    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then return end
+
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
+
+    if entity.loader_container and entity.loader_container.valid then
+        if entity.loader_type == "input" then
+            FilterHelper.add_items_drop_target_entity(entity.loader_container, items)
+        elseif entity.loader_type == "output" then
+            FilterHelper.add_items_pickup_target_entity(entity.loader_container, items)
         end
     end
 end
 
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
-local function add_items_circuit(entity, items)
+---Adds to the filter item list based on the connected circuit signals
+function FilterHelper.add_items_circuit(entity, items)
     if entity.get_control_behavior() then
         local control = entity.get_control_behavior()
         if control and (
@@ -279,7 +418,7 @@ end
 
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
-local function add_items_chest(entity, items)
+function FilterHelper.add_items_chest(entity, items)
     if entity.type == "logistic-container" and entity.prototype.logistic_mode == "storage" then
         local bb = entity.bounding_box
         local distance = 3
@@ -287,7 +426,7 @@ local function add_items_chest(entity, items)
 
         for _, inserter in pairs(entity.surface.find_entities_filtered { type = "inserter", area = area }) do
             if inserter.pickup_target == entity or inserter.drop_target == entity then
-                add_items_inserter(inserter, items, true)
+                FilterHelper.add_items_inserter(inserter, items, true)
             end
         end
     end
@@ -296,15 +435,17 @@ end
 ---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
-local function add_items(entity, items)
+---Adds to the filter item list for the given entity
+function FilterHelper.add_items(entity, items)
     if not entity or not entity.valid then
         return {}
     end
-    add_items_inserter(entity, items)
-    add_items_splitter(entity, items)
+    FilterHelper.add_items_inserter(entity, items)
+    FilterHelper.add_items_splitter(entity, items)
+    FilterHelper.add_items_loader(entity, items)
     --TODO have a second column for signals
-    add_items_circuit(entity, items)
-    add_items_chest(entity, items)
+    FilterHelper.add_items_circuit(entity, items)
+    FilterHelper.add_items_chest(entity, items)
     return items
 end
 
@@ -328,9 +469,9 @@ script.on_event(defines.events.on_gui_opened, function(event)
     local entity = event.entity
     if entity ~= nil then
         player_global.entity = entity
-        local items = add_items(entity, {})
+        local items = FilterHelper.add_items(entity, {})
         player_global.items = items
-        local active_items = get_active_items(entity)
+        local active_items = FilterHelper.get_active_items(entity)
         player_global.active_items = active_items
         if next(items) ~= nil or next(active_items) ~= nil then
             build_interface(event.player_index)
@@ -406,6 +547,8 @@ end)
 
 -- we need to close the ui on click and open it a tick later
 -- to visually update the filter ui
+-- if https://forums.factorio.com/viewtopic.php?f=7&t=106300 gets addressed,
+-- this close/reopen GUI business can be removed
 script.on_event(defines.events.on_tick, function(event)
     for _, player in pairs(game.players) do
         local player_global = global.players[player.index]
@@ -415,7 +558,7 @@ script.on_event(defines.events.on_tick, function(event)
         --update my gui when vanilla filter changes
         if player_global.elements.main_frame and player_global.elements.main_frame.valid then
             local entity = player_global.entity
-            local active_items = get_active_items(entity)
+            local active_items = FilterHelper.get_active_items(entity)
             if #active_items ~= #player_global.active_items then
                 player_global.active_items = active_items
                 build_sprite_buttons(player.index)
@@ -425,7 +568,4 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 -- TODO options for what things are considered. Chests, transport lines, etc
--- TODO inserter grab off splitter and underground
--- TODO handle too many ingredients
 -- TODO recently used section
--- TODO burnt result calculation

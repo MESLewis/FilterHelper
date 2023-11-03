@@ -3,6 +3,11 @@ Version: 0.1.9
 Date: ????
   Changes:
     - Added support for logistic storage chests
+    - Add loader1x2 and loader1x1 support
+    - Add item suggestions for inserters grabbing from/setting on underground belts, splitters, and loaders
+    - Add rocket launch silo suggestions
+    - Add fuel / burnt fuel result suggestions
+    - Use multiple columns when there are lots of item suggestions
   Bugfixes:
     - Fixed crash when selecting a fluid from a signal as a filter by no longer showing non-item signals from the circuit network
 ---------------------------------------------------------------------------------------------------
