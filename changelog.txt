@@ -3,7 +3,7 @@ Version: 0.1.9
 Date: ????
   Changes:
     - Changed interface to use left/right-click to add and remove filters
-    - Added support for logistic storage chests
+    - Added support for logistic storage, requester and buffer chests
     - Add loader1x2 and loader1x1 support
     - Add item suggestions for inserters grabbing from/setting on underground belts, splitters, and loaders
     - Add rocket launch silo suggestions

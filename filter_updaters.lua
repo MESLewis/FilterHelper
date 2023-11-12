@@ -1,5 +1,54 @@
 local updaters = {}
 
+updaters.logistic_chest_updater = {
+    condition = function(entity)
+        return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
+    end,
+    get_active_items = function(entity)
+        local active_items = {}
+        for i = 1, entity.request_slot_count do
+            local request_slot = entity.get_request_slot(i)
+            if request_slot then
+                table.insert(active_items, request_slot.name)
+            end
+        end
+        return active_items
+    end,
+    add = function(entity, clicked_item_name)
+        local found_slot
+        local found_count = 0
+        for i = 1, entity.request_slot_count + 1 do
+            local slot_stack = entity.get_request_slot(i)
+            if slot_stack then
+                if slot_stack.name == clicked_item_name then
+                    found_count = slot_stack.count
+                    found_slot = i
+                    break
+                end
+            elseif not found_slot then
+                found_slot = i
+            end
+        end
+        entity.set_request_slot({ name = clicked_item_name, count = game.item_prototypes[clicked_item_name].stack_size + found_count }, found_slot)
+        return false
+    end,
+    remove = function(entity, clicked_item_name)
+        for i = 1, entity.request_slot_count do
+            local slot_stack = entity.get_request_slot(i)
+            if slot_stack and slot_stack.name == clicked_item_name then
+                local new_count = slot_stack.count - game.item_prototypes[clicked_item_name].stack_size
+                if new_count > 0 then
+                    entity.set_request_slot({ name = clicked_item_name, count = new_count }, i)
+                else
+                    entity.clear_request_slot(i)
+                end
+                return false
+            end
+        end
+        return false, { "fh.requests-empty" }
+    end,
+}
+
 updaters.one_filter_updater = {
     condition = function(entity)
         return entity.filter_slot_count == 1 and entity.type ~= "infinity-container"
