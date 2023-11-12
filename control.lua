@@ -1,3 +1,5 @@
+local get_filter_updater = require("filter_updaters")
+
 local function contains(table, val)
    for i=1,#table do
       if table[i] == val then
@@ -167,19 +169,10 @@ function FilterHelper.get_active_items(entity)
     if not entity or not entity.valid then
         return {}
     end
-    local active_items = {}
-    -- skip infinity containers and logistic-containers since we don't care about filters for them
-    if entity.filter_slot_count > 0 and entity.type ~= "infinity-container" and entity.type ~= "logistic-container" then
-        for i = 1, entity.filter_slot_count do ---@type uint
-            table.insert(active_items, entity.get_filter(i))
-        end
-    end
-    if entity.type == "splitter" and entity.splitter_filter ~= nil then
-        local item = entity.splitter_filter.name
-        table.insert(active_items, item)
-    end
+
+    local updater = get_filter_updater(entity)
     --TODO handle circuits
-    return active_items
+    return updater and updater.get_active_items() or {}
 end
 
 ---@param entity LuaEntity
@@ -372,7 +365,7 @@ end
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
     if entity.type ~= "splitter" then return end
-    
+
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
 
@@ -419,7 +412,13 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
 function FilterHelper.add_items_chest(entity, items)
-    if entity.type == "logistic-container" and entity.prototype.logistic_mode == "storage" then
+    if entity.type == "container" or entity.type == "logistic-container" then
+        -- contents
+        for item, _ in pairs(entity.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+
+        -- relevant inserters
         local bb = entity.bounding_box
         local distance = 3
         local area = { { bb.left_top.x - distance, bb.left_top.y - distance }, { bb.right_bottom.x + distance, bb.right_bottom.y + distance } }
@@ -487,69 +486,7 @@ script.on_event(defines.events.on_gui_closed, function(event)
     end
 end)
 
--- ------------------------------- --
--- Filter/request update functions --
--- ------------------------------- --
 
-local one_filter_updater = {
-    fail_add = {"fh.filters-full"},
-    fail_remove = {"fh.filters-empty"},
-    add = function(entity, clicked_item_name)
-        entity.set_filter(1, clicked_item_name)
-        return true
-    end,
-    remove = function(entity, clicked_item_name)
-        entity.set_filter(1, nil)
-        return true
-    end,
-}
-
-local many_filters_updater = {
-    fail_add = {"fh.filters-full"},
-    fail_remove = {"fh.filters-empty"},
-    add = function(entity, clicked_item_name)
-        local found_slot
-        for i = 1, entity.filter_slot_count do
-            local found_filter = entity.get_filter(i)
-            if found_filter then
-                if found_filter == clicked_item_name then
-                    return false
-                end
-            elseif not found_slot then
-                found_slot = i
-            end
-        end
-        if found_slot then
-            entity.set_filter(found_slot, clicked_item_name)
-            return true
-        end
-        return false
-    end,
-    remove = function (entity, clicked_item_name)
-        for i = 1, entity.filter_slot_count do
-            if entity.get_filter(i) == clicked_item_name then
-                entity.set_filter(i, nil)
-                return true
-            end
-        end
-        return false
-    end,
-}
-local splitter_filter_updater = {
-    fail_add = {"fh.filters-full"},
-    fail_remove = {"fh.filters-empty"},
-    add = function(entity, clicked_item_name)
-        entity.splitter_filter = game.item_prototypes[clicked_item_name]
-        if entity.splitter_output_priority == "none" then
-            entity.splitter_output_priority = "left"
-        end
-        return true
-    end,
-    remove = function(entity, clicked_item_name)
-        entity.splitter_filter = nil
-        return true
-    end,
-}
 
 --EVENT on_gui_click
 script.on_event(defines.events.on_gui_click, function(event)
@@ -558,32 +495,24 @@ script.on_event(defines.events.on_gui_click, function(event)
     local action = event.element.tags.action
 
     if entity and type(clicked_item_name) == "string" and (action == "fh_select_button" or action == "fh_deselect_button") then
-        local updater
-
-        if entity.filter_slot_count == 1 then
-            updater = one_filter_updater
-        elseif entity.filter_slot_count > 1 then
-            updater = many_filters_updater
-        elseif entity.type == "splitter" then
-            updater = splitter_filter_updater
-        else
+        local updater = get_filter_updater(entity)
+        if not updater then
             return
         end
-
-        local fail_message, func
+        local command
         if event.button == defines.mouse_button_type.left then
-            fail_message = updater.fail_add
-            func = updater.add
+            command = updater.add
         elseif event.button == defines.mouse_button_type.right then
-            fail_message = updater.fail_remove
-            func = updater.remove
+            command = updater.remove
         else
             return
         end
 
-        if func(entity, clicked_item_name) then
+        local need_refresh, fail_message = command(clicked_item_name)
+        if need_refresh then
             close_vanilla_ui_for_rebuild(event.player_index)
-        else
+        end
+        if fail_message then
             -- Play fail sound if filter slots are full or empty
             entity.surface.play_sound { path = "utility/cannot_build", volume_modifier = 1.0 }
             game.get_player(event.player_index).create_local_flying_text { text = fail_message, create_at_cursor = true }
