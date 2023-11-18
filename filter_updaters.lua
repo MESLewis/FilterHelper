@@ -5,7 +5,7 @@ updaters.filtered_inventory_updater = {
         local inventory = entity.get_output_inventory()
         return inventory and inventory.supports_filters()
     end,
-    button_description = { "fh.tooltip-filters" },
+    button_description = { "fh.tooltip-container-filters" },
     get_active_items = function(entity)
         local inventory = entity.get_output_inventory()
         local active_items = {}
@@ -16,8 +16,32 @@ updaters.filtered_inventory_updater = {
         end
         return active_items
     end,
-    add = function(entity, clicked_item_name)
+    add = function(entity, clicked_item_name, modifiers)
         local inventory = entity.get_output_inventory()
+        if modifiers.shift and not modifiers.control then
+            for i = 1, #inventory do
+                if not inventory.get_filter(i) then
+                    if inventory[i].valid_for_read and inventory[i].name == clicked_item_name then
+                        inventory.set_filter(i, clicked_item_name)
+                    end
+                end
+            end
+            return false
+        end
+        if modifiers.control and not modifiers.shift then
+            for i = 1, #inventory do
+                if not inventory.get_filter(i) and (not inventory[i].valid_for_read or inventory[i].name == clicked_item_name) then
+                    inventory.set_filter(i, clicked_item_name)
+                end
+            end
+            return false
+        end
+        if modifiers.control and modifiers.shift then
+            for i = 1, #inventory do
+                inventory.set_filter(i, clicked_item_name)
+            end
+            return false
+        end
         local found_index
         for i = 1, #inventory do
             if not inventory.get_filter(i) then
@@ -37,9 +61,17 @@ updaters.filtered_inventory_updater = {
         end
         return false, { "fh.filters-full" }
     end,
-    remove = function(entity, clicked_item_name)
+    remove = function(entity, clicked_item_name, modifiers)
         local inventory = entity.get_output_inventory()
         local found_index
+        if modifiers.shift or modifiers.control then
+            for i = 1, #inventory do
+                if inventory.get_filter(i) == clicked_item_name then
+                    inventory.set_filter(i, nil)
+                end
+            end
+            return false
+        end
         for i = #inventory, 1, -1 do
             if inventory.get_filter(i) == clicked_item_name then
                 if not inventory[i].valid_for_read then
@@ -195,11 +227,11 @@ return function(entity)
                 get_active_items = function()
                     return updater.get_active_items(entity)
                 end,
-                add = function(clicked_item_name)
-                    return updater.add(entity, clicked_item_name)
+                add = function(clicked_item_name, modifiers)
+                    return updater.add(entity, clicked_item_name, modifiers)
                 end,
-                remove = function(clicked_item_name)
-                    return updater.remove(entity, clicked_item_name)
+                remove = function(clicked_item_name, modifiers)
+                    return updater.remove(entity, clicked_item_name, modifiers)
                 end,
                 button_description = updater.button_description
             }
