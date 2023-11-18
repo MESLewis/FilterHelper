@@ -4,6 +4,7 @@ updaters.logistic_chest_updater = {
     condition = function(entity)
         return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
     end,
+    button_description = {"fh.tooltip-requests"},
     get_active_items = function(entity)
         local active_items = {}
         for i = 1, entity.request_slot_count do
@@ -53,6 +54,7 @@ updaters.one_filter_updater = {
     condition = function(entity)
         return entity.filter_slot_count == 1 and entity.type ~= "infinity-container"
     end,
+    button_description = {"fh.tooltip-filters"},
     get_active_items = function(entity)
         return { entity.get_filter(1) }
     end,
@@ -70,6 +72,7 @@ updaters.many_filters_updater = {
     condition = function(entity)
         return entity.filter_slot_count > 1
     end,
+    button_description = {"fh.tooltip-filters"},
     get_active_items = function(entity)
         local active_items = {}
         for i = 1, entity.filter_slot_count do
@@ -110,6 +113,7 @@ updaters.splitter_filter_updater = {
     condition = function(entity)
         return entity.type == "splitter"
     end,
+    button_description = {"fh.tooltip-filters"},
     get_active_items = function(entity)
         return entity.splitter_filter and { entity.splitter_filter.name } or {}
     end,
@@ -139,6 +143,7 @@ return function(entity)
                 remove = function(clicked_item_name)
                     return updater.remove(entity, clicked_item_name)
                 end,
+                button_description = updater.button_description
             }
         end
     end

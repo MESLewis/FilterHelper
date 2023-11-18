@@ -18,6 +18,7 @@ local function build_sprite_buttons(player_index)
 
     local items = player_global.items
     local active_items = player_global.active_items
+    local button_description = get_filter_updater(player_global.entity).button_description
     for name, sprite_name in pairs(items) do
         local button_style = (contains(active_items, name) and "yellow_slot_button" or "recipe_slot_button")
         local action = (contains(active_items, name) and "fh_deselect_button" or "fh_select_button")
@@ -29,7 +30,7 @@ local function build_sprite_buttons(player_index)
                     action = action,
                     item_name = name ---@type string
                 },
-                tooltip = {"fh.button-tooltip", game.item_prototypes[name].localised_name},
+                tooltip = {"fh.button-tooltip", game.item_prototypes[name].localised_name, button_description},
                 style = button_style
             }
         end
