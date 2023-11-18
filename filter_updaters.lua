@@ -105,7 +105,7 @@ updaters.logistic_chest_updater = {
         end
         return active_items
     end,
-    add = function(entity, clicked_item_name)
+    add = function(entity, clicked_item_name, modifiers)
         local found_slot
         local found_count = 0
         for i = 1, entity.request_slot_count + 1 do
@@ -120,15 +120,28 @@ updaters.logistic_chest_updater = {
                 found_slot = i
             end
         end
-        entity.set_request_slot({ name = clicked_item_name, count = game.item_prototypes[clicked_item_name].stack_size + found_count }, found_slot)
+        local stack_size = game.item_prototypes[clicked_item_name].stack_size
+        local amount_to_set = found_count + stack_size
+        if modifiers.shift then
+            amount_to_set = found_count + 5 * stack_size
+        end
+        if modifiers.control then
+            amount_to_set = stack_size * #entity.get_output_inventory()
+        end
+        entity.set_request_slot({ name = clicked_item_name, count = amount_to_set}, found_slot)
         return false
     end,
-    remove = function(entity, clicked_item_name)
+    remove = function(entity, clicked_item_name, modifiers)
+        local stack_size = game.item_prototypes[clicked_item_name].stack_size
+        local amount_to_remove = stack_size
+        if modifiers.shift then
+            amount_to_remove = 5 * stack_size
+        end
         for i = 1, entity.request_slot_count do
             local slot_stack = entity.get_request_slot(i)
             if slot_stack and slot_stack.name == clicked_item_name then
-                local new_count = slot_stack.count - game.item_prototypes[clicked_item_name].stack_size
-                if new_count > 0 then
+                local new_count = slot_stack.count - amount_to_remove
+                if new_count > 0 and not modifiers.control then
                     entity.set_request_slot({ name = clicked_item_name, count = new_count }, i)
                 else
                     entity.clear_request_slot(i)

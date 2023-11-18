@@ -12,6 +12,7 @@ Date: ????
     - Added control tooltips per entity type
     - Support filters on cars and cargo wagons
     - Support existing/all filters on cars and cargo wagons
+    - Support increasing/decreasing requests by 5 stacks and full container
   Bugfixes:
     - Fixed crash when selecting a fluid from a signal as a filter by no longer showing non-item signals from the circuit network
 ---------------------------------------------------------------------------------------------------
