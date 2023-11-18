@@ -1,10 +1,68 @@
 local updaters = {}
 
+updaters.filtered_inventory_updater = {
+    condition = function(entity)
+        local inventory = entity.get_output_inventory()
+        return inventory and inventory.supports_filters()
+    end,
+    button_description = { "fh.tooltip-filters" },
+    get_active_items = function(entity)
+        local inventory = entity.get_output_inventory()
+        local active_items = {}
+        for i = 1, #inventory do
+            if inventory.get_filter(i) then
+                table.insert(active_items, inventory.get_filter(i))
+            end
+        end
+        return active_items
+    end,
+    add = function(entity, clicked_item_name)
+        local inventory = entity.get_output_inventory()
+        local found_index
+        for i = 1, #inventory do
+            if not inventory.get_filter(i) then
+                if inventory[i].valid_for_read then
+                    if inventory[i].name == clicked_item_name then
+                        found_index = i
+                        break
+                    end
+                elseif not found_index then
+                    found_index = i
+                end
+            end
+        end
+        if found_index then
+            inventory.set_filter(found_index, clicked_item_name)
+            return false
+        end
+        return false, { "fh.filters-full" }
+    end,
+    remove = function(entity, clicked_item_name)
+        local inventory = entity.get_output_inventory()
+        local found_index
+        for i = #inventory, 1, -1 do
+            if inventory.get_filter(i) == clicked_item_name then
+                if not inventory[i].valid_for_read then
+                    found_index = i
+                    break
+                elseif not found_index then
+                    found_index = i
+                end
+            end
+        end
+        if found_index then
+            inventory.set_filter(found_index, nil)
+            return false
+        end
+        return false, { "fh.filters-empty" }
+    end,
+}
+
 updaters.logistic_chest_updater = {
     condition = function(entity)
         return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
     end,
-    button_description = {"fh.tooltip-requests"},
+    button_description = { "fh.tooltip-requests" },
     get_active_items = function(entity)
         local active_items = {}
         for i = 1, entity.request_slot_count do
@@ -54,7 +112,7 @@ updaters.one_filter_updater = {
     condition = function(entity)
         return entity.filter_slot_count == 1 and entity.type ~= "infinity-container"
     end,
-    button_description = {"fh.tooltip-filters"},
+    button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
         return { entity.get_filter(1) }
     end,
@@ -72,7 +130,7 @@ updaters.many_filters_updater = {
     condition = function(entity)
         return entity.filter_slot_count > 1
     end,
-    button_description = {"fh.tooltip-filters"},
+    button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
         local active_items = {}
         for i = 1, entity.filter_slot_count do
@@ -113,7 +171,7 @@ updaters.splitter_filter_updater = {
     condition = function(entity)
         return entity.type == "splitter"
     end,
-    button_description = {"fh.tooltip-filters"},
+    button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
         return entity.splitter_filter and { entity.splitter_filter.name } or {}
     end,
