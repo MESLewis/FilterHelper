@@ -55,13 +55,12 @@ local function build_interface(player_index)
     local guis_table = {
         ["splitter"] = defines.relative_gui_type.splitter_gui,
         ["logistic-container"] = defines.relative_gui_type.container_gui,
+        ["loader"] = defines.relative_gui_type.loader_gui,
+        ["loader-1x1"] = defines.relative_gui_type.loader_gui,
+        ["car"] = defines.relative_gui_type.car_gui,
+        ["cargo-wagon"] = defines.relative_gui_type.container_gui,
     }
-
     local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
-
-    if player_global.entity.type == "loader" or player_global.entity.type == "loader-1x1" then
-        relative_gui_type = defines.relative_gui_type.loader_gui
-    end
 
     local anchor = {
         gui = relative_gui_type,
@@ -433,6 +432,17 @@ function FilterHelper.add_items_chest(entity, items)
 end
 
 ---@param entity LuaEntity
+---@param items table <string, SpritePath>
+function FilterHelper.add_items_vehicle(entity, items)
+    if entity.type == "car" or entity.type == "cargo-wagon" then
+        -- contents
+        for item, _ in pairs(entity.get_output_inventory().get_contents()) do
+            items[item] = "item/" .. item
+        end
+    end
+end
+
+---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
 ---Adds to the filter item list for the given entity
@@ -446,6 +456,7 @@ function FilterHelper.add_items(entity, items)
     --TODO have a second column for signals
     FilterHelper.add_items_circuit(entity, items)
     FilterHelper.add_items_chest(entity, items)
+    FilterHelper.add_items_vehicle(entity, items)
     return items
 end
 
