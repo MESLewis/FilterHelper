@@ -520,7 +520,7 @@ script.on_event(defines.events.on_gui_click, function(event)
             return
         end
 
-        local need_refresh, fail_message = command(clicked_item_name)
+        local need_refresh, fail_message = command(clicked_item_name, {alt = event.alt, control = event.control, shift = event.shift})
         if need_refresh then
             close_vanilla_ui_for_rebuild(event.player_index)
         end

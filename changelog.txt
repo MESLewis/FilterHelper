@@ -11,6 +11,7 @@ Date: ????
     - Use multiple columns when there are lots of item suggestions
     - Added control tooltips per entity type
     - Support filters on cars and cargo wagons
+    - Support existing/all filters on cars and cargo wagons
   Bugfixes:
     - Fixed crash when selecting a fluid from a signal as a filter by no longer showing non-item signals from the circuit network
 ---------------------------------------------------------------------------------------------------
