@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.9
-Date: ????
+Date: 2023-12-07
   Changes:
     - Changed interface to use left/right-click to add and remove filters
     - Added support for logistic storage, requester and buffer chests
