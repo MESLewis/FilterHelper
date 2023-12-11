@@ -1,12 +1,12 @@
 local get_filter_updater = require("filter_updaters")
 
 local function contains(table, val)
-   for i=1,#table do
-      if table[i] == val then
-         return true
-      end
-   end
-   return false
+    for i = 1, #table do
+        if table[i] == val then
+            return true
+        end
+    end
+    return false
 end
 
 ---@param player_index uint
@@ -31,7 +31,7 @@ local function build_sprite_buttons(player_index)
                     action = action,
                     item_name = name ---@type string
                 },
-                tooltip = {"fh.button-tooltip", game.item_prototypes[name].localised_name, button_description},
+                tooltip = { "fh.button-tooltip", game.item_prototypes[name].localised_name, button_description },
                 style = button_style
             }
         end
@@ -70,7 +70,7 @@ local function build_interface(player_index)
     }
 
     ---@type LuaGuiElement
-    local main_frame = player.gui.relative.add{
+    local main_frame = player.gui.relative.add {
         type = "frame",
         name = "main_frame",
         anchor = anchor,
@@ -85,18 +85,18 @@ local function build_interface(player_index)
     player_global.elements.main_frame = main_frame
 
     ---@type LuaGuiElement
-    local content_frame = main_frame.add{
-        type="scroll-pane",
-        name="content_frame",
-        direction="vertical",
+    local content_frame = main_frame.add {
+        type = "scroll-pane",
+        name = "content_frame",
+        direction = "vertical",
     }
     content_frame.style.top_margin = 8
 
     ---@type LuaGuiElement
-    local button_frame = content_frame.add{
-        type="frame",
-        name="button_frame",
-        direction="vertical",
+    local button_frame = content_frame.add {
+        type = "frame",
+        name = "button_frame",
+        direction = "vertical",
         style = "fh_deep_frame"
     }
 
@@ -108,17 +108,19 @@ local function build_interface(player_index)
     local player_global = global.players[player_index]
     local items = player_global.items
     local item_count = 0
-    for _ in pairs(items) do item_count = item_count + 1 end
+    for _ in pairs(items) do
+        item_count = item_count + 1
+    end
     local columns = math.ceil(item_count / buttons_per_column)
     columns = math.min(columns, max_columns)
     columns = math.max(columns, 1)
 
     ---@type LuaGuiElement
-    local button_table = button_frame.add{
-        type="table",
-        name="button_table",
-        column_count=columns,
-        style="filter_slot_table"
+    local button_table = button_frame.add {
+        type = "table",
+        name = "button_table",
+        column_count = columns,
+        style = "filter_slot_table"
     }
     player_global.elements.button_table = button_table
     build_sprite_buttons(player_index)
@@ -188,7 +190,8 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
     if entity.type == "transport-belt" then
-        for i = 1, entity.get_max_transport_line_index() do ---@type uint
+        for i = 1, entity.get_max_transport_line_index() do
+            ---@type uint
             local transport_line = entity.get_transport_line(i)
             for item, _ in pairs(transport_line.get_contents()) do
                 items[item] = "item/" .. item
@@ -211,7 +214,9 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for an underground belt
 function FilterHelper.add_items_underground_belt(entity, items)
-    if entity.type ~= "underground-belt" then return end
+    if entity.type ~= "underground-belt" then
+        return
+    end
 
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
@@ -238,7 +243,9 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on the result of burning fuel the entity burns
 function FilterHelper.add_items_burnt_results_entity(entity, items)
-    if not (entity.burner and entity.burner.valid) then return end
+    if not (entity.burner and entity.burner.valid) then
+        return
+    end
 
     local fuel_categories = entity.burner.fuel_categories
     for fuel_category, _ in pairs(fuel_categories) do
@@ -294,7 +301,9 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on the fuel the entity burns
 function FilterHelper.add_items_fuel_entity(entity, items)
-    if not (entity.burner and entity.burner.valid) then return end
+    if not (entity.burner and entity.burner.valid) then
+        return
+    end
 
     local fuel_categories = entity.burner.fuel_categories
     for fuel_category, _ in pairs(fuel_categories) do
@@ -348,7 +357,8 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on the connected transport belts
 function FilterHelper.add_items_transport_belt_connectable(entity, items)
-    for i = 1, entity.get_max_transport_line_index() do ---@type uint
+    for i = 1, entity.get_max_transport_line_index() do
+        ---@type uint
         local transport_line = entity.get_transport_line(i)
         for item, _ in pairs(transport_line.get_contents()) do
             items[item] = "item/" .. item
@@ -366,7 +376,9 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
-    if entity.type ~= "splitter" then return end
+    if entity.type ~= "splitter" then
+        return
+    end
 
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
@@ -375,7 +387,9 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
-    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then return end
+    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then
+        return
+    end
 
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 
@@ -396,8 +410,8 @@ function FilterHelper.add_items_circuit(entity, items)
         local control = entity.get_control_behavior()
         if control and (
                 control.type == defines.control_behavior.type.generic_on_off
-                or control.type == defines.control_behavior.type.inserter
-            ) then
+                        or control.type == defines.control_behavior.type.inserter
+        ) then
             local signals = entity.get_merged_signals()
             if signals then
                 for _, signal in pairs(signals) do
@@ -437,7 +451,7 @@ end
 ---@param items table <string, SpritePath>
 function FilterHelper.add_items_vehicle(entity, items)
     -- contents
-    if contains({"car", "cargo-wagon", "spider-vehicle"}, entity.type) then
+    if contains({ "car", "cargo-wagon", "spider-vehicle" }, entity.type) then
         for _, inventory_type in pairs { defines.inventory.car_trunk, defines.inventory.cargo_wagon, defines.inventory.spider_trunk } do
             local inventory = entity.get_inventory(inventory_type)
             if inventory then
@@ -528,7 +542,7 @@ script.on_event(defines.events.on_gui_click, function(event)
             return
         end
 
-        local need_refresh, fail_message = command(clicked_item_name, {alt = event.alt, control = event.control, shift = event.shift})
+        local need_refresh, fail_message = command(clicked_item_name, { alt = event.alt, control = event.control, shift = event.shift })
         if need_refresh then
             close_vanilla_ui_for_rebuild(event.player_index)
         end
