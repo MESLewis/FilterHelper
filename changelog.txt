@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.11
 Date: ????
+  Changes:
+    - Middle button to put ghost in hand, to manually set filters or conditions
   Bugfixes:
     - Fixed invalid entity when getting button description
     - Fixed opening moving cargo wagons and spidertron

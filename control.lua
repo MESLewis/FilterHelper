@@ -32,7 +32,8 @@ local function build_sprite_buttons(player_index)
                     item_name = name ---@type string
                 },
                 tooltip = { "fh.button-tooltip", game.item_prototypes[name].localised_name, button_description },
-                style = button_style
+                style = button_style,
+                mouse_button_filter = { "left", "right", "middle" },
             }
         end
     end
@@ -538,6 +539,11 @@ script.on_event(defines.events.on_gui_click, function(event)
             command = updater.add
         elseif event.button == defines.mouse_button_type.right then
             command = updater.remove
+        elseif event.button == defines.mouse_button_type.middle then
+            local player = game.get_player(event.player_index)
+            player.clear_cursor()
+            player.cursor_ghost = clicked_item_name
+            return
         else
             return
         end
