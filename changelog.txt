@@ -3,6 +3,7 @@ Version: 0.1.11
 Date: ????
   Changes:
     - Middle button to put ghost in hand, to manually set filters or conditions
+    - Add active items to items, so they can be easily unfiltered or unrequested
   Bugfixes:
     - Fixed invalid entity when getting button description
     - Fixed opening moving cargo wagons and spidertron
