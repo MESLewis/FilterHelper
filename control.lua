@@ -60,6 +60,7 @@ local function build_interface(player_index)
         ["loader-1x1"] = defines.relative_gui_type.loader_gui,
         ["car"] = defines.relative_gui_type.car_gui,
         ["cargo-wagon"] = defines.relative_gui_type.container_gui,
+        ["spider-vehicle"] = defines.relative_gui_type.spider_vehicle_gui,
     }
     local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
 
@@ -435,10 +436,16 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, SpritePath>
 function FilterHelper.add_items_vehicle(entity, items)
-    if entity.type == "car" or entity.type == "cargo-wagon" then
-        -- contents
-        for item, _ in pairs(entity.get_output_inventory().get_contents()) do
-            items[item] = "item/" .. item
+    -- contents
+    if contains({"car", "cargo-wagon", "spider-vehicle"}, entity.type) then
+        for _, inventory_type in pairs { defines.inventory.car_trunk, defines.inventory.cargo_wagon, defines.inventory.spider_trunk } do
+            local inventory = entity.get_inventory(inventory_type)
+            if inventory then
+                for item, _ in pairs(inventory.get_contents()) do
+                    items[item] = "item/" .. item
+                end
+                return
+            end
         end
     end
 end

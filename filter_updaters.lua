@@ -1,13 +1,24 @@
-local updaters = {}
+local function get_storage_inventory(entity)
+    local inventory = entity.get_output_inventory()
+    if inventory then
+        return inventory
+    end
+    for _, inventory_type in pairs { "chest", "car_trunk", "cargo_wagon", "spider_trunk" } do
+        inventory = entity.get_inventory(defines.inventory[inventory_type])
+        if inventory then
+            return inventory
+        end
+    end
+end
 
-updaters.filtered_inventory_updater = {
+local filtered_inventory_updater = {
     condition = function(entity)
-        local inventory = entity.get_output_inventory()
+        local inventory = get_storage_inventory(entity)
         return inventory and inventory.supports_filters()
     end,
     button_description = { "fh.tooltip-container-filters" },
     get_active_items = function(entity)
-        local inventory = entity.get_output_inventory()
+        local inventory = get_storage_inventory(entity)
         local active_items = {}
         for i = 1, #inventory do
             if inventory.get_filter(i) then
@@ -17,7 +28,7 @@ updaters.filtered_inventory_updater = {
         return active_items
     end,
     add = function(entity, clicked_item_name, modifiers)
-        local inventory = entity.get_output_inventory()
+        local inventory = get_storage_inventory(entity)
         if modifiers.shift and not modifiers.control then
             for i = 1, #inventory do
                 if not inventory.get_filter(i) then
@@ -62,7 +73,7 @@ updaters.filtered_inventory_updater = {
         return false, { "fh.filters-full" }
     end,
     remove = function(entity, clicked_item_name, modifiers)
-        local inventory = entity.get_output_inventory()
+        local inventory = get_storage_inventory(entity)
         local found_index
         if modifiers.shift or modifiers.control then
             for i = 1, #inventory do
@@ -90,7 +101,7 @@ updaters.filtered_inventory_updater = {
     end,
 }
 
-updaters.logistic_chest_updater = {
+local logistic_chest_updater = {
     condition = function(entity)
         return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
     end,
@@ -128,7 +139,7 @@ updaters.logistic_chest_updater = {
         if modifiers.control then
             amount_to_set = stack_size * #entity.get_output_inventory()
         end
-        entity.set_request_slot({ name = clicked_item_name, count = amount_to_set}, found_slot)
+        entity.set_request_slot({ name = clicked_item_name, count = amount_to_set }, found_slot)
         return false
     end,
     remove = function(entity, clicked_item_name, modifiers)
@@ -153,7 +164,7 @@ updaters.logistic_chest_updater = {
     end,
 }
 
-updaters.one_filter_updater = {
+local one_filter_updater = {
     condition = function(entity)
         return entity.filter_slot_count == 1 and entity.type ~= "infinity-container"
     end,
@@ -171,7 +182,7 @@ updaters.one_filter_updater = {
     end,
 }
 
-updaters.many_filters_updater = {
+local many_filters_updater = {
     condition = function(entity)
         return entity.filter_slot_count > 1
     end,
@@ -212,7 +223,7 @@ updaters.many_filters_updater = {
     end,
 }
 
-updaters.splitter_filter_updater = {
+local splitter_filter_updater = {
     condition = function(entity)
         return entity.type == "splitter"
     end,
@@ -234,7 +245,7 @@ updaters.splitter_filter_updater = {
 }
 
 return function(entity)
-    for _, updater in pairs(updaters) do
+    for _, updater in pairs { logistic_chest_updater, filtered_inventory_updater, many_filters_updater, one_filter_updater, splitter_filter_updater } do
         if updater.condition(entity) then
             return {
                 get_active_items = function()
