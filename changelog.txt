@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.11
-Date: ????
+Date: 2023-12-11
   Changes:
     - Middle button to put ghost in hand, to manually set filters or conditions
     - Add active items to items, so they can be easily unfiltered or unrequested
