@@ -505,11 +505,10 @@ script.on_event(defines.events.on_gui_opened, function(event)
         player_global.entity = entity
         local active_items = FilterHelper.get_active_items(entity)
         player_global.active_items = active_items
-        local items = {}
+        local items = FilterHelper.add_items(entity, {})
         for _, item in pairs(active_items) do
             items[item] = "item/" .. item
         end
-        FilterHelper.add_items(entity, items)
         player_global.items = items
         if next(items) ~= nil or next(active_items) ~= nil then
             build_interface(event.player_index)
