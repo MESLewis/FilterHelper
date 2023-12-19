@@ -495,6 +495,10 @@ script.on_event(defines.events.on_player_created, function(event)
     init_global(event.player_index)
 end)
 
+script.on_event(defines.events.on_pre_player_removed, function(event)
+    global.players[event.player_index] = nil
+end)
+
 -- EVENT on_gui_opened
 script.on_event(defines.events.on_gui_opened, function(event)
     local player_global = global.players[event.player_index]

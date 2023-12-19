@@ -5,6 +5,7 @@ Date: ????
     - Updated readme
   Bugfixes:
     - Fixed active items changing order of filters
+    - Handling players who are removed
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.11
 Date: 2023-12-11
