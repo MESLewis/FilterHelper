@@ -9,7 +9,13 @@ local function contains(table, val)
     return false
 end
 
----@param player_index uint
+local function get_player_global(player_index)
+    local player_global = global.players[player_index]
+    if player_global and player_global.player and player_global.player.valid then
+        return player_global
+    end
+end
+
 local function build_sprite_buttons(player_global)
     local button_table = player_global.elements.button_table
     button_table.clear()
@@ -40,15 +46,8 @@ end
 local buttons_per_column = 7 -- the maximum number of sprite-buttons per column in the gui
 local max_columns = 10 -- the maximum number of columns to use for the gui
 
----@param player_index uint
-local function build_interface(player_index)
-    local player_global = global.players[player_index]
-    local player = game.get_player(player_index)
-    if not player then
-        return
-    end
-
-    if player_global.elements.main_frame ~= nil then
+local function build_interface(player_global)
+    if player_global.elements.main_frame then
         player_global.elements.main_frame.destroy()
     end
 
@@ -69,7 +68,7 @@ local function build_interface(player_index)
     }
 
     ---@type LuaGuiElement
-    local main_frame = player.gui.relative.add {
+    local main_frame = player_global.player.gui.relative.add {
         type = "frame",
         name = "main_frame",
         anchor = anchor,
@@ -124,33 +123,26 @@ local function build_interface(player_index)
     build_sprite_buttons(player_global)
 end
 
----@param player_index uint
-local function close_vanilla_ui_for_rebuild(player_index)
-    local player_global = global.players[player_index]
-    local player = game.get_player(player_index)
-    if not player then
-        return
-    end
+local function close_vanilla_ui_for_rebuild(player_global)
     -- close gui to be reopened next tick to refresh ui
+    local player = player_global.player
     player_global.needs_reopen = true
     player_global.reopen = player.opened
     player_global.reopen_tick = game.tick
     player.opened = nil
 end
 
----@param player_index uint
-local function reopen_vanilla(player_index)
-    local player_global = global.players[player_index]
-    local player = game.get_player(player_index)
-    player.opened = player_global.reopen
+local function reopen_vanilla(player_global)
+    player_global.player.opened = player_global.reopen
     player_global.needs_reopen = false
     player_global.reopen = nil
 end
 
----@param player_index uint
-local function init_global(player_index)
+---@param player LuaPlayer
+local function init_global(player)
     ---@class PlayerTable
-    global.players[player_index] = {
+    global.players[player.index] = {
+        player = player,
         elements = {},
         items = {}, ---@type table<string, SpritePath>
         active_items = {}, ---@type table<string, string>
@@ -480,8 +472,7 @@ function FilterHelper.add_items(entity, items)
     return items
 end
 
-local function update_ui(player_index, check_items)
-    local player_global = global.players[player_index]
+local function update_ui(player_global, check_items)
     if not player_global.entity then
         return
     end
@@ -514,7 +505,7 @@ local function update_ui(player_index, check_items)
         if interface_open then
             build_sprite_buttons(player_global)
         else
-            build_interface(player_index)
+            build_interface(player_global)
         end
     end
 end
@@ -523,12 +514,12 @@ script.on_init(function()
     ---@type table<number, PlayerTable>
     global.players = {}
     for _, player in pairs(game.players) do
-        init_global(player.index)
+        init_global(player)
     end
 end)
 
 script.on_event(defines.events.on_player_created, function(event)
-    init_global(event.player_index)
+    init_global(game.get_player(event.player_index))
 end)
 
 script.on_event(defines.events.on_pre_player_removed, function(event)
@@ -538,10 +529,10 @@ end)
 -- EVENT on_gui_opened
 script.on_event(defines.events.on_gui_opened, function(event)
     -- the entity that is opened
-    if event.entity then
-        local player_global = global.players[event.player_index]
+    local player_global = get_player_global(event.player_index)
+    if player_global and event.entity then
         player_global.entity = event.entity
-        update_ui(event.player_index, true)
+        update_ui(player_global, true)
     end
 end)
 
@@ -558,11 +549,14 @@ script.on_event(defines.events.on_gui_closed, function(event)
     end
 end)
 
-
-
 --EVENT on_gui_click
 script.on_event(defines.events.on_gui_click, function(event)
-    local entity = global.players[event.player_index].entity
+    local player_global = get_player_global(event.player_index)
+    if not player_global then
+        return
+    end
+
+    local entity = player_global.entity
     local clicked_item_name = event.element.tags.item_name
     local action = event.element.tags.action
 
@@ -577,7 +571,7 @@ script.on_event(defines.events.on_gui_click, function(event)
         elseif event.button == defines.mouse_button_type.right then
             command = updater.remove
         elseif event.button == defines.mouse_button_type.middle then
-            local player = game.get_player(event.player_index)
+            local player = player_global.player
             player.clear_cursor()
             player.cursor_ghost = clicked_item_name
             return
@@ -587,12 +581,12 @@ script.on_event(defines.events.on_gui_click, function(event)
 
         local need_refresh, fail_message = command(clicked_item_name, { alt = event.alt, control = event.control, shift = event.shift })
         if need_refresh then
-            close_vanilla_ui_for_rebuild(event.player_index)
+            close_vanilla_ui_for_rebuild(player_global)
         end
         if fail_message then
             -- Play fail sound if filter slots are full or empty
             entity.surface.play_sound { path = "utility/cannot_build", volume_modifier = 1.0 }
-            game.get_player(event.player_index).create_local_flying_text { text = fail_message, create_at_cursor = true }
+            player_global.player.create_local_flying_text { text = fail_message, create_at_cursor = true }
         end
     end
 end)
@@ -603,11 +597,13 @@ end)
 -- this close/reopen GUI business can be removed
 script.on_event(defines.events.on_tick, function(event)
     for _, player in pairs(game.players) do
-        local player_global = global.players[player.index]
-        if player_global.needs_reopen and player_global.reopen_tick ~= event.tick then
-            reopen_vanilla(player.index)
+        local player_global = get_player_global(player.index)
+        if player_global then
+            if player_global.needs_reopen and player_global.reopen_tick ~= event.tick then
+                reopen_vanilla(player_global)
+            end
+            update_ui(player_global, event.tick % 60 == 0)
         end
-        update_ui(player.index, event.tick % 60 == 0)
     end
 end)
 
