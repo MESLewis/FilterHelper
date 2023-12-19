@@ -506,6 +506,9 @@ local function update_ui(player_index, check_items)
             update_interface = true
         end
     end
+    if not interface_open and (next(player_global.items) or next(player_global.active_items)) then
+        update_interface = true
+    end
 
     if update_interface then
         if interface_open then
@@ -514,15 +517,6 @@ local function update_ui(player_index, check_items)
             build_interface(player_index)
         end
     end
-end
-
-local function clear_data(player_global)
-    if player_global.elements.main_frame then
-        player_global.elements.main_frame.destroy()
-    end
-    player_global.entity = nil
-    player_global.active_items = {}
-    player_global.items = {}
 end
 
 script.on_init(function()
@@ -546,7 +540,6 @@ script.on_event(defines.events.on_gui_opened, function(event)
     -- the entity that is opened
     if event.entity then
         local player_global = global.players[event.player_index]
-        clear_data(player_global)
         player_global.entity = event.entity
         update_ui(event.player_index, true)
     end
@@ -554,7 +547,15 @@ end)
 
 --EVENT on_gui_closed
 script.on_event(defines.events.on_gui_closed, function(event)
-    clear_data(global.players[event.player_index])
+    local player_global = global.players[event.player_index]
+    if player_global.elements.main_frame then
+        player_global.elements.main_frame.destroy()
+    end
+    player_global.entity = nil
+    if not player_global.needs_reopen then
+        player_global.items = {}
+        player_global.active_items = {}
+    end
 end)
 
 
