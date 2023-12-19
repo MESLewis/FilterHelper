@@ -3,6 +3,7 @@ Version: 0.1.12
 Date: ????
   Changes:
     - Updated readme
+    - Items are refreshed periodically, opening gui when needed
   Bugfixes:
     - Fixed active items changing order of filters
     - Handling players who are removed

@@ -10,9 +10,7 @@ local function contains(table, val)
 end
 
 ---@param player_index uint
-local function build_sprite_buttons(player_index)
-    local player_global = global.players[player_index]
-
+local function build_sprite_buttons(player_global)
     local button_table = player_global.elements.button_table
     button_table.clear()
 
@@ -106,7 +104,6 @@ local function build_interface(player_index)
     -- items to filter
     -- the scroll bar may still appear because the number of columns
     -- is capped to prevent the relative gui taking up too much horizontal space
-    local player_global = global.players[player_index]
     local items = player_global.items
     local item_count = 0
     for _ in pairs(items) do
@@ -124,7 +121,7 @@ local function build_interface(player_index)
         style = "filter_slot_table"
     }
     player_global.elements.button_table = button_table
-    build_sprite_buttons(player_index)
+    build_sprite_buttons(player_global)
 end
 
 ---@param player_index uint
@@ -483,6 +480,51 @@ function FilterHelper.add_items(entity, items)
     return items
 end
 
+local function update_ui(player_index, check_items)
+    local player_global = global.players[player_index]
+    if not player_global.entity then
+        return
+    end
+
+    local interface_open = player_global.elements.main_frame and player_global.elements.main_frame.valid
+    local update_interface = false
+
+    if check_items or interface_open then
+        local old_active_item_count = #player_global.active_items
+        player_global.active_items = FilterHelper.get_active_items(player_global.entity)
+        for _, item in pairs(player_global.active_items) do
+            player_global.items[item] = "item/" .. item
+        end
+        if #player_global.active_items ~= old_active_item_count then
+            update_interface = true
+        end
+    end
+    if check_items then
+        local old_item_count = table_size(player_global.items)
+        FilterHelper.add_items(player_global.entity, player_global.items)
+        if table_size(player_global.items) > old_item_count then
+            update_interface = true
+        end
+    end
+
+    if update_interface then
+        if interface_open then
+            build_sprite_buttons(player_global)
+        else
+            build_interface(player_index)
+        end
+    end
+end
+
+local function clear_data(player_global)
+    if player_global.elements.main_frame then
+        player_global.elements.main_frame.destroy()
+    end
+    player_global.entity = nil
+    player_global.active_items = {}
+    player_global.items = {}
+end
+
 script.on_init(function()
     ---@type table<number, PlayerTable>
     global.players = {}
@@ -501,31 +543,18 @@ end)
 
 -- EVENT on_gui_opened
 script.on_event(defines.events.on_gui_opened, function(event)
-    local player_global = global.players[event.player_index]
-
     -- the entity that is opened
-    local entity = event.entity
-    if entity ~= nil then
-        player_global.entity = entity
-        local active_items = FilterHelper.get_active_items(entity)
-        player_global.active_items = active_items
-        local items = FilterHelper.add_items(entity, {})
-        for _, item in pairs(active_items) do
-            items[item] = "item/" .. item
-        end
-        player_global.items = items
-        if next(items) ~= nil or next(active_items) ~= nil then
-            build_interface(event.player_index)
-        end
+    if event.entity then
+        local player_global = global.players[event.player_index]
+        clear_data(player_global)
+        player_global.entity = event.entity
+        update_ui(event.player_index, true)
     end
 end)
 
 --EVENT on_gui_closed
 script.on_event(defines.events.on_gui_closed, function(event)
-    local player_global = global.players[event.player_index]
-    if player_global.elements.main_frame ~= nil then
-        player_global.elements.main_frame.destroy()
-    end
+    clear_data(global.players[event.player_index])
 end)
 
 
@@ -577,15 +606,7 @@ script.on_event(defines.events.on_tick, function(event)
         if player_global.needs_reopen and player_global.reopen_tick ~= event.tick then
             reopen_vanilla(player.index)
         end
-        --update my gui when vanilla filter changes
-        if player_global.elements.main_frame and player_global.elements.main_frame.valid then
-            local entity = player_global.entity
-            local active_items = FilterHelper.get_active_items(entity)
-            if #active_items ~= #player_global.active_items then
-                player_global.active_items = active_items
-                build_sprite_buttons(player.index)
-            end
-        end
+        update_ui(player.index, event.tick % 60 == 0)
     end
 end)
 
