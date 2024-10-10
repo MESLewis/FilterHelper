@@ -330,14 +330,18 @@ function FilterHelper.add_items_inserter(entity, items, ignore_slots)
 
         if #pickup_target_list > 0 then
             for _, target in pairs(pickup_target_list) do
-                FilterHelper.add_items_pickup_target_entity(target, items)
+                if not target.prototype.has_flag("no-automated-item-removal") then
+                    FilterHelper.add_items_pickup_target_entity(target, items)
+                end
             end
         end
 
         local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
         if #drop_target_list > 0 then
             for _, target in pairs(drop_target_list) do
-                FilterHelper.add_items_drop_target_entity(target, items)
+                if not target.prototype.has_flag("no-automated-item-insertion") then
+                    FilterHelper.add_items_drop_target_entity(target, items)
+                end
             end
         end
     end
