@@ -1,4 +1,5 @@
 local get_filter_updater = require("filter_updaters")
+local fh_util = require("fh_util")
 
 local function contains(table, val)
     for i = 1, #table do
@@ -9,8 +10,16 @@ local function contains(table, val)
     return false
 end
 
+local function add_inventory_items(table, inventory)
+    if inventory then
+        for _, item in pairs(inventory.get_contents()) do
+            fh_util.add_item_to_table(table, item.name, item.quality)
+        end
+    end
+end
+
 local function get_player_global(player_index)
-    local player_global = global.players[player_index]
+    local player_global = storage.players[player_index]
     if player_global and player_global.player and player_global.player.valid then
         return player_global
     end
@@ -24,22 +33,22 @@ local function build_sprite_buttons(player_global)
     local active_items = player_global.active_items
     local updater = player_global.entity.valid and get_filter_updater(player_global.entity)
     local button_description = updater and updater.button_description
-    for name, sprite_name in pairs(items) do
-        local button_style = (contains(active_items, name) and "yellow_slot_button" or "recipe_slot_button")
-        local action = (contains(active_items, name) and "fh_deselect_button" or "fh_select_button")
-        if game.is_valid_sprite_path(sprite_name) then
-            button_table.add {
-                type = "sprite-button",
-                sprite = sprite_name,
-                tags = {
-                    action = action,
-                    item_name = name ---@type string
-                },
-                tooltip = { "fh.button-tooltip", game.item_prototypes[name].localised_name, button_description },
-                style = button_style,
-                mouse_button_filter = { "left", "right", "middle" },
-            }
-        end
+
+    for item_id, item in pairs(items) do
+        local button = button_table.add {
+            type = "choose-elem-button",
+            elem_type = "item-with-quality",
+            --sprite = sprite_name,
+            ["item-with-quality"] = item,
+            tags = {
+                action = active_items[item_id] and "fh_deselect_button" or "fh_select_button",
+                item = item,
+            },
+            tooltip = { "fh.button-tooltip", prototypes.item[item.name].localised_name, button_description },
+            style = active_items[item_id] and "yellow_slot_button" or "slot_button",
+            mouse_button_filter = { "left", "right" },
+        }
+        button.locked = true
     end
 end
 
@@ -72,7 +81,7 @@ local function build_interface(player_global)
         type = "frame",
         name = "main_frame",
         anchor = anchor,
-        style = "fh_content_frame"
+        style = "fh_content_frame",
     }
     -- limit the height of the relative gui to fit 10 buttons per column
     -- if there are too many buttons, the scroll-pane allows them to be scrolled
@@ -95,7 +104,7 @@ local function build_interface(player_global)
         type = "frame",
         name = "button_frame",
         direction = "vertical",
-        style = "fh_deep_frame"
+        style = "fh_deep_frame",
     }
 
     -- use multiple columns if there are lots of buttons so its less
@@ -123,33 +132,15 @@ local function build_interface(player_global)
     build_sprite_buttons(player_global)
 end
 
-local function close_vanilla_ui_for_rebuild(player_global)
-    -- close gui to be reopened next tick to refresh ui
-    local player = player_global.player
-    player_global.needs_reopen = true
-    player_global.reopen = player.opened
-    player_global.reopen_tick = game.tick
-    player.opened = nil
-end
-
-local function reopen_vanilla(player_global)
-    player_global.player.opened = player_global.reopen
-    player_global.needs_reopen = false
-    player_global.reopen = nil
-end
-
 ---@param player LuaPlayer
 local function init_global(player)
     ---@class PlayerTable
-    global.players[player.index] = {
+    storage.players[player.index] = {
         player = player,
         elements = {},
         items = {}, ---@type table<string, SpritePath>
         active_items = {}, ---@type table<string, string>
         entity = nil, ---@type LuaEntity?
-        needs_reopen = false,
-        reopen = nil,
-        reopen_tick = 0
     }
 end
 
@@ -182,9 +173,8 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     if entity.type == "transport-belt" then
         for i = 1, entity.get_max_transport_line_index() do
             ---@type uint
-            local transport_line = entity.get_transport_line(i)
-            for item, _ in pairs(transport_line.get_contents()) do
-                items[item] = "item/" .. item
+            for _, item in pairs(entity.get_transport_line(i).get_contents()) do
+                fh_util.add_item_to_table(items, item.name, item.quality)
             end
         end
         if upstream > 0 then
@@ -239,26 +229,12 @@ function FilterHelper.add_items_burnt_results_entity(entity, items)
 
     local fuel_categories = entity.burner.fuel_categories
     for fuel_category, _ in pairs(fuel_categories) do
-        for _, item_prototype in pairs(game.item_prototypes) do
+        for _, item_prototype in pairs(prototypes.item) do
             if item_prototype.fuel_category == fuel_category then
                 local burnt_result_prototype = item_prototype.burnt_result
                 if burnt_result_prototype then
-                    items[burnt_result_prototype.name] = "item/" .. burnt_result_prototype.name
+                    fh_util.add_item_to_table(items, burnt_result_prototype.name, prototypes.quality.normal)
                 end
-            end
-        end
-    end
-end
-
----@param items table<string, SpritePath>
----Adds to the filter item list based on the result of rocket launches
----Because any rocket silo can launch any item, it's not possible to filter
----this to a specific launch recipe (i.e. satellite -> space science or space science -> fish)
-function FilterHelper.add_items_rocket_launch_products_entity(items)
-    for _, item_prototype in pairs(game.item_prototypes) do
-        if item_prototype.rocket_launch_products then
-            for _, rocket_launch_product_prototype in pairs(item_prototype.rocket_launch_products) do
-                items[rocket_launch_product_prototype.name] = "item/" .. rocket_launch_product_prototype.name
             end
         end
     end
@@ -268,21 +244,17 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
-    if target.type == "assembling-machine" and target.get_recipe() ~= nil then
-        for _, product in pairs(target.get_recipe().products) do
-            if product.type == "item" then
-                items[product.name] = "item/" .. product.name
+    if target.type == "assembling-machine" then
+        local recipe, quality = target.get_recipe()
+        if recipe then
+            for _, product in pairs(recipe.products) do
+                if product.type == "item" then
+                    fh_util.add_item_to_table(items, product, quality)
+                end
             end
         end
     end
-    if target.type == "rocket-silo" then
-        FilterHelper.add_items_rocket_launch_products_entity(items)
-    end
-    if target.get_output_inventory() ~= nil then
-        for item, _ in pairs(target.get_output_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
-    end
+    add_inventory_items(items, target.get_output_inventory())
     FilterHelper.add_items_burnt_results_entity(target, items)
     FilterHelper.add_items_interact_target_entity(target, items)
 end
@@ -297,9 +269,9 @@ function FilterHelper.add_items_fuel_entity(entity, items)
 
     local fuel_categories = entity.burner.fuel_categories
     for fuel_category, _ in pairs(fuel_categories) do
-        for item_prototype_name, item_prototype in pairs(game.item_prototypes) do
+        for item_prototype_name, item_prototype in pairs(prototypes.item) do
             if item_prototype.fuel_category == fuel_category then
-                items[item_prototype_name] = "item/" .. item_prototype_name
+                fh_util.add_item_to_table(items, item_prototype_name, prototypes.quality.normal)
             end
         end
     end
@@ -309,10 +281,13 @@ end
 ---@param items table<string, SpritePath>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
-    if (target.type == "assembling-machine" or target.type == "rocket-silo") and target.get_recipe() ~= nil then
-        for _, ingredient in pairs(target.get_recipe().ingredients) do
-            if ingredient.type == "item" then
-                items[ingredient.name] = "item/" .. ingredient.name
+    if (target.type == "assembling-machine" or target.type == "rocket-silo") then
+        local recipe, quality = target.get_recipe()
+        if recipe then
+            for _, ingredient in pairs(recipe.ingredients) do
+                if ingredient.type == "item" then
+                    fh_util.add_item_to_table(items, ingredient.name, quality)
+                end
             end
         end
     end
@@ -350,8 +325,8 @@ function FilterHelper.add_items_transport_belt_connectable(entity, items)
     for i = 1, entity.get_max_transport_line_index() do
         ---@type uint
         local transport_line = entity.get_transport_line(i)
-        for item, _ in pairs(transport_line.get_contents()) do
-            items[item] = "item/" .. item
+        for _, item in pairs(transport_line.get_contents()) do
+            fh_util.add_item_to_table(items, item.name, item.quality)
         end
     end
     for _, belt in pairs(entity.belt_neighbours.inputs) do
@@ -399,15 +374,15 @@ function FilterHelper.add_items_circuit(entity, items)
     if entity.get_control_behavior() then
         local control = entity.get_control_behavior()
         if control and (
-                control.type == defines.control_behavior.type.generic_on_off
-                        or control.type == defines.control_behavior.type.inserter
+            control.type == defines.control_behavior.type.generic_on_off
+                or control.type == defines.control_behavior.type.inserter
         ) then
-            local signals = entity.get_merged_signals()
+            local signals = entity.get_signals(defines.wire_connector_id.circuit_red, defines.wire_connector_id.circuit_green)
             if signals then
                 for _, signal in pairs(signals) do
                     local signal_id = signal.signal
-                    if signal_id.name and signal_id.type == "item" then
-                        items[signal_id.name] = signal_id.type .. "/" .. signal_id.name
+                    if signal_id.name and (signal_id.type == "item" or not signal_id.type) then
+                        fh_util.add_item_to_table(items, signal_id.name, signal_id.quality)
                     end
                 end
             end
@@ -420,9 +395,7 @@ end
 function FilterHelper.add_items_chest(entity, items)
     if entity.type == "container" or entity.type == "logistic-container" then
         -- contents
-        for item, _ in pairs(entity.get_output_inventory().get_contents()) do
-            items[item] = "item/" .. item
-        end
+        add_inventory_items(items, entity.get_output_inventory())
 
         -- relevant inserters
         local bb = entity.bounding_box
@@ -445,9 +418,7 @@ function FilterHelper.add_items_vehicle(entity, items)
         for _, inventory_type in pairs { defines.inventory.car_trunk, defines.inventory.cargo_wagon, defines.inventory.spider_trunk } do
             local inventory = entity.get_inventory(inventory_type)
             if inventory then
-                for item, _ in pairs(inventory.get_contents()) do
-                    items[item] = "item/" .. item
-                end
+                add_inventory_items(items, inventory)
                 return
             end
         end
@@ -481,12 +452,12 @@ local function update_ui(player_global, check_items)
     local update_interface = false
 
     if check_items or interface_open then
-        local old_active_item_count = #player_global.active_items
+        local old_active_items = player_global.active_items
         player_global.active_items = FilterHelper.get_active_items(player_global.entity)
-        for _, item in pairs(player_global.active_items) do
-            player_global.items[item] = "item/" .. item
+        for item_id, item in pairs(player_global.active_items) do
+            player_global.items[item_id] = item
         end
-        if #player_global.active_items ~= old_active_item_count then
+        if not table.compare(player_global.active_items, old_active_items) then
             update_interface = true
         end
     end
@@ -512,7 +483,7 @@ end
 
 script.on_init(function()
     ---@type table<number, PlayerTable>
-    global.players = {}
+    storage.players = {}
     for _, player in pairs(game.players) do
         init_global(player)
     end
@@ -523,7 +494,7 @@ script.on_event(defines.events.on_player_created, function(event)
 end)
 
 script.on_event(defines.events.on_pre_player_removed, function(event)
-    global.players[event.player_index] = nil
+    storage.players[event.player_index] = nil
 end)
 
 -- EVENT on_gui_opened
@@ -538,15 +509,13 @@ end)
 
 --EVENT on_gui_closed
 script.on_event(defines.events.on_gui_closed, function(event)
-    local player_global = global.players[event.player_index]
+    local player_global = storage.players[event.player_index]
     if player_global.elements.main_frame then
         player_global.elements.main_frame.destroy()
     end
     player_global.entity = nil
-    if not player_global.needs_reopen then
-        player_global.items = {}
-        player_global.active_items = {}
-    end
+    player_global.items = {}
+    player_global.active_items = {}
 end)
 
 --EVENT on_gui_click
@@ -557,10 +526,10 @@ script.on_event(defines.events.on_gui_click, function(event)
     end
 
     local entity = player_global.entity
-    local clicked_item_name = event.element.tags.item_name
+    local clicked_item = event.element.tags.item
     local action = event.element.tags.action
 
-    if entity and type(clicked_item_name) == "string" and (action == "fh_select_button" or action == "fh_deselect_button") then
+    if entity and (action == "fh_select_button" or action == "fh_deselect_button") then
         local updater = get_filter_updater(entity)
         if not updater then
             return
@@ -570,24 +539,15 @@ script.on_event(defines.events.on_gui_click, function(event)
             command = updater.add
         elseif event.button == defines.mouse_button_type.right then
             command = updater.remove
-        elseif event.button == defines.mouse_button_type.middle then
-            local player = player_global.player
-            player.clear_cursor()
-            player.cursor_ghost = clicked_item_name
-            return
-        else
-            return
         end
 
-        local need_refresh, fail_message = command(clicked_item_name, { alt = event.alt, control = event.control, shift = event.shift })
-        if need_refresh then
-            close_vanilla_ui_for_rebuild(player_global)
-        end
+        local fail_message = command(clicked_item, { alt = event.alt, control = event.control, shift = event.shift })
         if fail_message then
             -- Play fail sound if filter slots are full or empty
             entity.surface.play_sound { path = "utility/cannot_build", volume_modifier = 1.0 }
             player_global.player.create_local_flying_text { text = fail_message, create_at_cursor = true }
         end
+        update_ui(player_global)
     end
 end)
 
@@ -599,9 +559,6 @@ script.on_event(defines.events.on_tick, function(event)
     for _, player in pairs(game.players) do
         local player_global = get_player_global(player.index)
         if player_global then
-            if player_global.needs_reopen and player_global.reopen_tick ~= event.tick then
-                reopen_vanilla(player_global)
-            end
             update_ui(player_global, event.tick % 60 == 0)
         end
     end
