@@ -233,7 +233,7 @@ function FilterHelper.add_items_burnt_results_entity(entity, items)
             if item_prototype.fuel_category == fuel_category then
                 local burnt_result_prototype = item_prototype.burnt_result
                 if burnt_result_prototype then
-                    fh_util.add_item_to_table(items, burnt_result_prototype.name, prototypes.quality.normal)
+                    fh_util.add_item_to_table(items, burnt_result_prototype.name, nil)
                 end
             end
         end
@@ -271,7 +271,7 @@ function FilterHelper.add_items_fuel_entity(entity, items)
     for fuel_category, _ in pairs(fuel_categories) do
         for item_prototype_name, item_prototype in pairs(prototypes.item) do
             if item_prototype.fuel_category == fuel_category then
-                fh_util.add_item_to_table(items, item_prototype_name, prototypes.quality.normal)
+                fh_util.add_item_to_table(items, item_prototype_name, nil)
             end
         end
     end

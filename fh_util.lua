@@ -7,7 +7,12 @@ function fh_util.make_item_id(name, quality)
 end
 
 function fh_util.add_item_to_table(table, name, quality)
-    local quality_name = type(quality) == "string" and quality or quality.name
+    local quality_name
+    if quality then
+        quality_name = type(quality) == "string" and quality or quality.name
+    else
+        quality_name = prototypes.quality.normal.name
+    end
     local name_name = type(name) == "string" and name or name.name
     table[fh_util.make_item_id(name_name, quality_name)] = { name = name_name, quality = quality_name }
     end
