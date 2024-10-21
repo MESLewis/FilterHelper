@@ -2,6 +2,7 @@
 Version: 0.2.3
 Date: ????
   Changes:
+    - Logistic chest updaters now work with the top logistic group if exists
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.2
 Date: 2024-10-18

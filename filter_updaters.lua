@@ -100,6 +100,14 @@ local filtered_inventory_updater = {
     end,
 }
 
+local function find_section(entity)
+    for _, section in pairs(entity.get_requester_point().sections) do
+        if section.is_manual then
+            return section
+        end
+    end
+end
+
 local logistic_chest_updater = {
     condition = function(entity)
         return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
@@ -107,20 +115,21 @@ local logistic_chest_updater = {
     button_description = { "fh.tooltip-requests" },
     get_active_items = function(entity)
         local active_items = {}
-        for _, item in pairs(entity.get_requester_point().filters or {}) do
-            fh_util.add_item_to_table(active_items, item.name, item.quality)
+        local found_section = find_section(entity)
+        if not found_section then
+            return active_items
+        end
+        for _, filter in pairs(found_section.filters) do
+            local value = filter.value
+            if value then
+                fh_util.add_item_to_table(active_items, value.name, value.quality)
+            end
         end
         return active_items
     end,
     add = function(entity, clicked_item, modifiers)
-        local found_section
-        for _, section in pairs(entity.get_requester_point().sections) do
-            if section.group == "" then
-                found_section = section
-                break
-            end
-        end
-        if not found_section.is_manual then
+        local found_section = find_section(entity)
+        if not found_section then
             return
         end
         local found_filter
@@ -158,14 +167,8 @@ local logistic_chest_updater = {
         return
     end,
     remove = function(entity, clicked_item, modifiers)
-        local found_section
-        for _, section in pairs(entity.get_requester_point().sections) do
-            if section.group == "" then
-                found_section = section
-                break
-            end
-        end
-        if not found_section.is_manual then
+        local found_section = find_section(entity)
+        if not found_section then
             return
         end
         local stack_size = prototypes.item[clicked_item.name].stack_size
