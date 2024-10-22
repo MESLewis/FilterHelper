@@ -7,6 +7,9 @@ function fh_util.make_item_id(name, quality)
 end
 
 function fh_util.add_item_to_table(table, name, quality)
+    if not name then
+        return
+    end
     local quality_name
     if quality then
         quality_name = type(quality) == "string" and quality or quality.name
