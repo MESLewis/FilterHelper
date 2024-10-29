@@ -25,11 +25,27 @@ local function get_player_global(player_index)
     end
 end
 
+local function spoil_closure(items)
+    local result = table.deepcopy(items)
+    while next(items) do
+        local new_items = {}
+        for _, item in pairs(items) do
+            local spoil_result = prototypes.item[item.name].spoil_result
+            if spoil_result and not result[fh_util.make_item_id(spoil_result.name, item.quality)] then
+                fh_util.add_item_to_table(new_items, spoil_result.name, item.quality)
+                fh_util.add_item_to_table(result, spoil_result.name, item.quality)
+            end
+        end
+        items = new_items
+    end
+    return result
+end
+
 local function build_sprite_buttons(player_global)
     local button_table = player_global.elements.button_table
     button_table.clear()
 
-    local items = player_global.items
+    local items = spoil_closure(player_global.items)
     local active_items = player_global.active_items
     local updater = player_global.entity.valid and get_filter_updater(player_global.entity)
     local button_description = updater and updater.button_description
@@ -38,7 +54,6 @@ local function build_sprite_buttons(player_global)
         local button = button_table.add {
             type = "choose-elem-button",
             elem_type = "item-with-quality",
-            --sprite = sprite_name,
             ["item-with-quality"] = item,
             tags = {
                 action = active_items[item_id] and "fh_deselect_button" or "fh_select_button",
