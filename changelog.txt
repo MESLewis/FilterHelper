@@ -3,6 +3,8 @@ Version: 0.2.5
 Date: ????
   Changes:
     - Support for spoilage results
+  Bugfixes:
+    - Fixed crash with non-item logistic requests
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.4
 Date: 2024-10-22

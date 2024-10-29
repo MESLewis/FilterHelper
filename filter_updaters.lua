@@ -121,7 +121,7 @@ local logistic_chest_updater = {
         end
         for _, filter in pairs(found_section.filters) do
             local value = filter.value
-            if value then
+            if value and (value.type == "item" or not value.type) then
                 fh_util.add_item_to_table(active_items, value.name, value.quality)
             end
         end
