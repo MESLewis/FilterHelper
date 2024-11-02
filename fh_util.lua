@@ -24,6 +24,7 @@ function fh_util.canonize_item(item, quality)
         end
     end
     local quality_name = type(quality) == "string" and quality or (quality or prototypes.quality.normal).name
+    ---@class ItemWithQuality
     return { name = item_name, quality = quality_name }
 end
 

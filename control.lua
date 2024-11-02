@@ -158,8 +158,8 @@ local function init_global(player)
     storage.players[player.index] = {
         player = player,
         elements = {},
-        items = {}, ---@type table<string, SpritePath>
-        active_items = {}, ---@type table<string, string>
+        items = {}, ---@type table<string, ItemWithQuality>
+        active_items = {}, ---@type table<string, ItemWithQuality>
         entity = nil, ---@type LuaEntity?
     }
 end
@@ -181,7 +181,7 @@ function FilterHelper.get_active_items(entity)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---@param upstream uint?
 ---@param downstream uint?
 ---Adds to the filter item list for a transport belt
@@ -211,7 +211,7 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for an underground belt
 function FilterHelper.add_items_underground_belt(entity, items)
     if entity.type ~= "underground-belt" then
@@ -222,7 +222,7 @@ function FilterHelper.add_items_underground_belt(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being interacted with
 function FilterHelper.add_items_interact_target_entity(target, items)
     if target.type == "transport-belt" then
@@ -240,7 +240,7 @@ function FilterHelper.add_items_interact_target_entity(target, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on the result of burning fuel the entity burns
 function FilterHelper.add_items_burnt_results_entity(entity, items)
     if not (entity.burner and entity.burner.valid) then
@@ -259,7 +259,7 @@ function FilterHelper.add_items_burnt_results_entity(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "assembling-machine" then
@@ -285,7 +285,7 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on the fuel the entity burns
 function FilterHelper.add_items_fuel_entity(entity, items)
     if not (entity.burner and entity.burner.valid) then
@@ -303,7 +303,7 @@ function FilterHelper.add_items_fuel_entity(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
     if (target.type == "assembling-machine" or target.type == "rocket-silo") then
@@ -321,7 +321,7 @@ function FilterHelper.add_items_drop_target_entity(target, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---@param ignore_slots boolean?
 ---Adds to the filter item list for an inserter
 function FilterHelper.add_items_inserter(entity, items, ignore_slots)
@@ -344,7 +344,7 @@ function FilterHelper.add_items_inserter(entity, items, ignore_slots)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on the connected transport belts
 function FilterHelper.add_items_transport_belt_connectable(entity, items)
     for i = 1, entity.get_max_transport_line_index() do
@@ -363,7 +363,7 @@ function FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
     if entity.type ~= "splitter" then
@@ -374,7 +374,7 @@ function FilterHelper.add_items_splitter(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
     if entity.type ~= "loader" and entity.type ~= "loader-1x1" then
@@ -393,7 +393,7 @@ function FilterHelper.add_items_loader(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table <string, SpritePath>
+---@param items table <string, ItemWithQuality>
 ---Adds to the filter item list based on the connected circuit signals
 function FilterHelper.add_items_circuit(entity, items)
     if entity.get_control_behavior() then
@@ -416,7 +416,7 @@ function FilterHelper.add_items_circuit(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table <string, SpritePath>
+---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_chest(entity, items)
     if entity.type == "container" or entity.type == "logistic-container" then
         -- contents
@@ -436,7 +436,7 @@ function FilterHelper.add_items_chest(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table <string, SpritePath>
+---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_vehicle(entity, items)
     -- contents
     if contains({ "car", "cargo-wagon", "spider-vehicle" }, entity.type) then
@@ -451,7 +451,7 @@ function FilterHelper.add_items_vehicle(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table <string, SpritePath>
+---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_miner(entity, items)
     -- contents
     if entity.type == "mining-drill" then
@@ -466,8 +466,8 @@ function FilterHelper.add_items_miner(entity, items)
 end
 
 ---@param entity LuaEntity
----@param items table<string, SpritePath>
----@return table<string, SpritePath>
+---@param items table<string, ItemWithQuality>
+---@return table<string, ItemWithQuality>
 ---Adds to the filter item list for the given entity
 function FilterHelper.add_items(entity, items)
     if not entity or not entity.valid then
