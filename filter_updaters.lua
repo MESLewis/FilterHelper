@@ -43,11 +43,13 @@ local filtered_inventory_updater = {
                     inventory.set_filter(i, clicked_item)
                 end
             end
+            return
         end
         if modifiers.control and modifiers.shift then
             for i = 1, #inventory do
                 inventory.set_filter(i, clicked_item)
             end
+            return
         end
         local found_index
         for i = 1, #inventory do

@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.6
 Date: ????
+  Bugfixes:
+    - Fixed incorrect addition of filters of filterable inventories
   Internal:
     - Simplify and consolidate item and quality canonization
 ---------------------------------------------------------------------------------------------------
