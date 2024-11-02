@@ -41,14 +41,12 @@ local function spoil_closure(items)
     return result
 end
 
-local function build_sprite_buttons(player_global)
+local function build_sprite_buttons(player_global, updater)
     local button_table = player_global.elements.button_table
     button_table.clear()
 
     local items = spoil_closure(player_global.items)
     local active_items = player_global.active_items
-    local updater = player_global.entity.valid and get_filter_updater(player_global.entity)
-    local button_description = updater.button_description
 
     for item_id, item in pairs(items) do
         local button = button_table.add {
@@ -59,7 +57,7 @@ local function build_sprite_buttons(player_global)
                 action = active_items[item_id] and "fh_deselect_button" or "fh_select_button",
                 item = item,
             },
-            tooltip = { "fh.button-tooltip", prototypes.item[item.name].localised_name, button_description },
+            tooltip = { "fh.button-tooltip", prototypes.item[item.name].localised_name, updater.button_description },
             style = active_items[item_id] and "yellow_slot_button" or "slot_button",
             mouse_button_filter = { "left", "right" },
         }
@@ -73,10 +71,6 @@ local max_columns = 10 -- the maximum number of columns to use for the gui
 local function build_interface(player_global)
     if player_global.elements.main_frame then
         player_global.elements.main_frame.destroy()
-    end
-
-    if not get_filter_updater(player_global.entity) then
-        return
     end
 
     local guis_table = {
@@ -149,7 +143,6 @@ local function build_interface(player_global)
         style = "filter_slot_table"
     }
     player_global.elements.button_table = button_table
-    build_sprite_buttons(player_global)
 end
 
 ---@param player LuaPlayer
@@ -165,20 +158,6 @@ local function init_global(player)
 end
 
 local FilterHelper = {}
-
--- this is run every tick when a filter gui is open to detect vanilla changes
--- active_items is a list of item names
----@param entity LuaEntity?
----@return table<string>
-function FilterHelper.get_active_items(entity)
-    if not entity or not entity.valid then
-        return {}
-    end
-
-    local updater = get_filter_updater(entity)
-    --TODO handle circuits
-    return updater and updater.get_active_items() or {}
-end
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
@@ -470,9 +449,6 @@ end
 ---@return table<string, ItemWithQuality>
 ---Adds to the filter item list for the given entity
 function FilterHelper.add_items(entity, items)
-    if not entity or not entity.valid then
-        return {}
-    end
     FilterHelper.add_items_inserter(entity, items)
     FilterHelper.add_items_splitter(entity, items)
     FilterHelper.add_items_loader(entity, items)
@@ -485,7 +461,11 @@ function FilterHelper.add_items(entity, items)
 end
 
 local function update_ui(player_global, check_items)
-    if not player_global.entity then
+    if not player_global.entity or not player_global.entity.valid then
+        return
+    end
+    local updater = get_filter_updater(player_global.entity)
+    if not updater then
         return
     end
 
@@ -494,7 +474,7 @@ local function update_ui(player_global, check_items)
 
     if check_items or interface_open then
         local old_active_items = player_global.active_items
-        player_global.active_items = FilterHelper.get_active_items(player_global.entity)
+        player_global.active_items = updater.get_active_items()
         for item_id, item in pairs(player_global.active_items) do
             player_global.items[item_id] = item
         end
@@ -514,11 +494,10 @@ local function update_ui(player_global, check_items)
     end
 
     if update_interface then
-        if interface_open then
-            build_sprite_buttons(player_global)
-        else
+        if not interface_open then
             build_interface(player_global)
         end
+        build_sprite_buttons(player_global, updater)
     end
 end
 
