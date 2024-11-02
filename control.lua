@@ -265,10 +265,17 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "assembling-machine" then
         local recipe, quality = target.get_recipe()
         if recipe then
-            for _, product in pairs(recipe.products) do
-                if product.type == "item" then
-                    fh_util.add_item_to_table(items, product, quality)
+            local has_quality = target.effects and target.effects.quality and target.effects.quality > 0
+            while quality do
+                for _, product in pairs(recipe.products) do
+                    if product.type == "item" then
+                        fh_util.add_item_to_table(items, product, quality)
+                    end
                 end
+                if not has_quality then
+                    break
+                end
+                quality = quality.next
             end
         end
     end

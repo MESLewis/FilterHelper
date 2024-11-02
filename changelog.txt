@@ -3,6 +3,7 @@ Version: 0.2.6
 Date: ????
   Changes:
     - Support for filtered miners
+    - Support for quality upgraded products
   Bugfixes:
     - Fixed incorrect addition of filters of filterable inventories
     - Don't show filter if there's no relevant updater
