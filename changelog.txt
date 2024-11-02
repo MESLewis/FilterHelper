@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.6
-Date: ????
+Date: 2024-11-02
   Changes:
     - Support for filtered miners
     - Support for quality upgraded products
