@@ -23,10 +23,7 @@ local filtered_inventory_updater = {
         local inventory = get_storage_inventory(entity)
         local active_items = {}
         for i = 1, #inventory do
-            local filter = inventory.get_filter(i)
-            if filter then
-                fh_util.add_item_to_table(active_items, filter.name, filter.quality)
-            end
+            fh_util.add_item_to_table(active_items, inventory.get_filter(i))
         end
         return active_items
     end,
@@ -122,7 +119,7 @@ local logistic_chest_updater = {
         for _, filter in pairs(found_section.filters) do
             local value = filter.value
             if value and (value.type == "item" or not value.type) then
-                fh_util.add_item_to_table(active_items, value.name, value.quality)
+                fh_util.add_item_to_table(active_items, value)
             end
         end
         return active_items
@@ -204,9 +201,7 @@ local one_filter_updater = {
     get_active_items = function(entity)
         local active_items = {}
         local filter = entity.get_filter(1)
-        if filter and filter.name then
-            fh_util.add_item_to_table(active_items, filter.name, filter.quality)
-        end
+        fh_util.add_item_to_table(active_items, filter)
         return active_items
     end,
     add = function(entity, clicked_item)
@@ -225,10 +220,7 @@ local many_filters_updater = {
     get_active_items = function(entity)
         local active_items = {}
         for i = 1, entity.filter_slot_count do
-            local filter = entity.get_filter(i)
-            if filter then
-                fh_util.add_item_to_table(active_items, filter.name, filter.quality)
-            end
+            fh_util.add_item_to_table(active_items, entity.get_filter(i))
         end
         return active_items
     end,
@@ -269,9 +261,7 @@ local splitter_filter_updater = {
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
         local active_items = {}
-        if entity.splitter_filter and entity.splitter_filter.name then
-            fh_util.add_item_to_table(active_items, entity.splitter_filter.name, entity.splitter_filter.quality)
-        end
+        fh_util.add_item_to_table(active_items, entity.splitter_filter)
         return active_items
     end,
     add = function(entity, clicked_item)

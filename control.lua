@@ -13,7 +13,7 @@ end
 local function add_inventory_items(table, inventory)
     if inventory then
         for _, item in pairs(inventory.get_contents()) do
-            fh_util.add_item_to_table(table, item.name, item.quality)
+            fh_util.add_item_to_table(table, item)
         end
     end
 end
@@ -32,8 +32,8 @@ local function spoil_closure(items)
         for _, item in pairs(items) do
             local spoil_result = prototypes.item[item.name].spoil_result
             if spoil_result and not result[fh_util.make_item_id(spoil_result.name, item.quality)] then
-                fh_util.add_item_to_table(new_items, spoil_result.name, item.quality)
-                fh_util.add_item_to_table(result, spoil_result.name, item.quality)
+                fh_util.add_item_to_table(new_items, spoil_result, item.quality)
+                fh_util.add_item_to_table(result, spoil_result, item.quality)
             end
         end
         items = new_items
@@ -189,7 +189,7 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
         for i = 1, entity.get_max_transport_line_index() do
             ---@type uint
             for _, item in pairs(entity.get_transport_line(i).get_contents()) do
-                fh_util.add_item_to_table(items, item.name, item.quality)
+                fh_util.add_item_to_table(items, item)
             end
         end
         if upstream > 0 then
@@ -247,9 +247,7 @@ function FilterHelper.add_items_burnt_results_entity(entity, items)
         for _, item_prototype in pairs(prototypes.item) do
             if item_prototype.fuel_category == fuel_category then
                 local burnt_result_prototype = item_prototype.burnt_result
-                if burnt_result_prototype then
-                    fh_util.add_item_to_table(items, burnt_result_prototype.name, nil)
-                end
+                fh_util.add_item_to_table(items, burnt_result_prototype)
             end
         end
     end
@@ -286,7 +284,7 @@ function FilterHelper.add_items_fuel_entity(entity, items)
     for fuel_category, _ in pairs(fuel_categories) do
         for item_prototype_name, item_prototype in pairs(prototypes.item) do
             if item_prototype.fuel_category == fuel_category then
-                fh_util.add_item_to_table(items, item_prototype_name, nil)
+                fh_util.add_item_to_table(items, item_prototype_name)
             end
         end
     end
@@ -301,7 +299,7 @@ function FilterHelper.add_items_drop_target_entity(target, items)
         if recipe then
             for _, ingredient in pairs(recipe.ingredients) do
                 if ingredient.type == "item" then
-                    fh_util.add_item_to_table(items, ingredient.name, quality)
+                    fh_util.add_item_to_table(items, ingredient, quality)
                 end
             end
         end
@@ -341,7 +339,7 @@ function FilterHelper.add_items_transport_belt_connectable(entity, items)
         ---@type uint
         local transport_line = entity.get_transport_line(i)
         for _, item in pairs(transport_line.get_contents()) do
-            fh_util.add_item_to_table(items, item.name, item.quality)
+            fh_util.add_item_to_table(items, item)
         end
     end
     for _, belt in pairs(entity.belt_neighbours.inputs) do
@@ -397,7 +395,7 @@ function FilterHelper.add_items_circuit(entity, items)
                 for _, signal in pairs(signals) do
                     local signal_id = signal.signal
                     if signal_id.name and (signal_id.type == "item" or not signal_id.type) then
-                        fh_util.add_item_to_table(items, signal_id.name, signal_id.quality)
+                        fh_util.add_item_to_table(items, signal_id)
                     end
                 end
             end
