@@ -48,7 +48,7 @@ local function build_sprite_buttons(player_global)
     local items = spoil_closure(player_global.items)
     local active_items = player_global.active_items
     local updater = player_global.entity.valid and get_filter_updater(player_global.entity)
-    local button_description = updater and updater.button_description
+    local button_description = updater.button_description
 
     for item_id, item in pairs(items) do
         local button = button_table.add {
@@ -73,6 +73,10 @@ local max_columns = 10 -- the maximum number of columns to use for the gui
 local function build_interface(player_global)
     if player_global.elements.main_frame then
         player_global.elements.main_frame.destroy()
+    end
+
+    if not get_filter_updater(player_global.entity) then
+        return
     end
 
     local guis_table = {

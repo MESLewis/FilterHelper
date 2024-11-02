@@ -5,6 +5,7 @@ Date: ????
     - Support for filtered miners
   Bugfixes:
     - Fixed incorrect addition of filters of filterable inventories
+    - Don't show filter if there's no relevant updater
   Internal:
     - Simplify and consolidate item and quality canonization
 ---------------------------------------------------------------------------------------------------
