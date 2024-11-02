@@ -83,6 +83,7 @@ local function build_interface(player_global)
         ["car"] = defines.relative_gui_type.car_gui,
         ["cargo-wagon"] = defines.relative_gui_type.container_gui,
         ["spider-vehicle"] = defines.relative_gui_type.spider_vehicle_gui,
+        ["mining-drill"] = defines.relative_gui_type.mining_drill_gui,
     }
     local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
 
@@ -439,6 +440,21 @@ function FilterHelper.add_items_vehicle(entity, items)
 end
 
 ---@param entity LuaEntity
+---@param items table <string, SpritePath>
+function FilterHelper.add_items_miner(entity, items)
+    -- contents
+    if entity.type == "mining-drill" then
+        local radius = entity.prototype.mining_drill_radius
+        for _, resource in pairs(entity.surface.find_entities_filtered {
+            area = { { entity.position.x - radius, entity.position.y - radius }, { entity.position.x + radius, entity.position.y + radius } },
+            type = "resource",
+        }) do
+            fh_util.add_item_to_table(items, resource)
+        end
+    end
+end
+
+---@param entity LuaEntity
 ---@param items table<string, SpritePath>
 ---@return table<string, SpritePath>
 ---Adds to the filter item list for the given entity
@@ -453,6 +469,7 @@ function FilterHelper.add_items(entity, items)
     FilterHelper.add_items_circuit(entity, items)
     FilterHelper.add_items_chest(entity, items)
     FilterHelper.add_items_vehicle(entity, items)
+    FilterHelper.add_items_miner(entity, items)
     return items
 end
 

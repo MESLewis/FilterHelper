@@ -239,7 +239,8 @@ local many_filters_updater = {
             end
         end
         if found_slot then
-            entity.set_filter(found_slot, { name = clicked_item.name, quality = clicked_item.quality })
+            local filter_to_set = entity.type == "mining-drill" and clicked_item.name or clicked_item
+            entity.set_filter(found_slot, filter_to_set)
             return
         end
         return { "fh.filters-full" }
