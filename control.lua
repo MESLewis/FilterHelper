@@ -529,7 +529,7 @@ end)
 
 --EVENT on_gui_closed
 script.on_event(defines.events.on_gui_closed, function(event)
-    local player_global = storage.players[event.player_index]
+    local player_global = get_player_global(event.player_index)
     if player_global.elements.main_frame then
         player_global.elements.main_frame.destroy()
     end
