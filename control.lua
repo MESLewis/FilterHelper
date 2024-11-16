@@ -554,7 +554,7 @@ script.on_event(defines.events.on_gui_click, function(event)
     local clicked_item = event.element.tags.item
     local action = event.element.tags.action
 
-    if entity and (action == "fh_select_button" or action == "fh_deselect_button") then
+    if entity and entity.valid and (action == "fh_select_button" or action == "fh_deselect_button") then
         local updater = get_filter_updater(entity)
         if not updater then
             return
