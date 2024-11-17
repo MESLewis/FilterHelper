@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.9
-Date: ????
+Date: 2024-11-17
   Bugfixes:
     - Added missing "valid" check on gui click
   Changes:
