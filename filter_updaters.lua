@@ -216,7 +216,7 @@ local one_filter_updater = {
 
 local many_filters_updater = {
     condition = function(entity)
-        return entity.filter_slot_count > 1
+        return entity.filter_slot_count > 1 and entity.type ~= "infinity-container"
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
