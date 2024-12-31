@@ -25,8 +25,8 @@ local function get_player_global(player_index)
     end
 end
 
-local function spoil_closure(items)
-    local result = table.deepcopy(items)
+local function spoil_closure(items, exclude_inputs)
+    local result = exclude_inputs and {} or table.deepcopy(items)
     while next(items) do
         local new_items = {}
         for _, item in pairs(items) do
@@ -260,6 +260,7 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     end
     add_inventory_items(items, target.get_output_inventory())
     FilterHelper.add_items_burnt_results_entity(target, items)
+    FilterHelper.add_items_spoiled_fuel_entity(target, items)
     FilterHelper.add_items_interact_target_entity(target, items)
 end
 
@@ -278,6 +279,29 @@ function FilterHelper.add_items_fuel_entity(entity, items)
                 fh_util.add_item_to_table(items, item_prototype_name)
             end
         end
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, ItemWithQuality>
+---Adds to the filter item list based on the fuel the entity burns, if it spoils
+function FilterHelper.add_items_spoiled_fuel_entity(entity, items)
+    if not (entity.burner and entity.burner.valid) then
+        return
+    end
+
+    local fuel_items = {}
+    local fuel_categories = entity.burner.fuel_categories
+    for fuel_category, _ in pairs(fuel_categories) do
+        for item_prototype_name, item_prototype in pairs(prototypes.item) do
+            if item_prototype.fuel_category == fuel_category then
+                fh_util.add_item_to_table(fuel_items, item_prototype_name)
+            end
+        end
+    end
+
+    for _, item in pairs(spoil_closure(fuel_items, true)) do
+        fh_util.add_item_to_table(items, item)
     end
 end
 
