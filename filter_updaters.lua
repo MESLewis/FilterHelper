@@ -279,6 +279,9 @@ local splitter_filter_updater = {
 }
 
 return function(entity)
+    if entity.type == "entity-ghost" then
+        return
+    end
     for _, updater in pairs { logistic_chest_updater, filtered_inventory_updater, many_filters_updater, one_filter_updater, splitter_filter_updater } do
         if updater.condition(entity) then
             return {
