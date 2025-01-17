@@ -251,6 +251,14 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
                         fh_util.add_item_to_table(items, product, quality)
                     end
                 end
+                for _, ingredient in pairs(recipe.ingredients) do
+                    if ingredient.type == "item" then
+                        local spoiled_ingredient = prototypes.item[ingredient.name].spoil_result
+                        if spoiled_ingredient ~= nil then
+                            fh_util.add_item_to_table(items, spoiled_ingredient, quality)
+                        end
+                    end
+                end
                 if not has_quality then
                     break
                 end
