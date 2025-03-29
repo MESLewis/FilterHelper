@@ -11,7 +11,7 @@ local function contains(table, val)
 end
 
 local function add_inventory_items(table, inventory)
-    if inventory then
+    if inventory and inventory.valid then
         for _, item in pairs(inventory.get_contents()) do
             fh_util.add_item_to_table(table, item)
         end
