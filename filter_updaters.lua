@@ -2,12 +2,12 @@ local fh_util = require("fh_util")
 
 local function get_storage_inventory(entity)
     local inventory = entity.get_output_inventory()
-    if inventory then
+    if inventory and inventory.valid then
         return inventory
     end
     for _, inventory_type in pairs { "chest", "car_trunk", "cargo_wagon", "spider_trunk" } do
         inventory = entity.get_inventory(defines.inventory[inventory_type])
-        if inventory then
+        if inventory and inventory.valid then
             return inventory
         end
     end
