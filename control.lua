@@ -82,8 +82,12 @@ local function build_interface(player_global)
         ["cargo-wagon"] = defines.relative_gui_type.container_gui,
         ["spider-vehicle"] = defines.relative_gui_type.spider_vehicle_gui,
         ["mining-drill"] = defines.relative_gui_type.mining_drill_gui,
+        ["inserter"] = defines.relative_gui_type.inserter_gui,
     }
-    local relative_gui_type = guis_table[player_global.entity.type] or defines.relative_gui_type.inserter_gui
+    local relative_gui_type = guis_table[player_global.entity.type]
+    if not relative_gui_type then
+        return
+    end
 
     local anchor = {
         gui = relative_gui_type,
@@ -550,7 +554,7 @@ end)
 script.on_event(defines.events.on_gui_opened, function(event)
     -- the entity that is opened
     local player_global = get_player_global(event.player_index)
-    if player_global and event.entity then
+    if player_global and event.entity and event.entity.type ~= "proxy-container" then
         player_global.entity = event.entity
         update_ui(player_global, true)
     end
