@@ -3,6 +3,7 @@ Version: 0.2.13
 Date: ????
   Changes:
     - Support ghost entities
+    - Support fluid filters on fluid mining drills
   Bugfixes:
     - Do not crash on proxy-containers
 ---------------------------------------------------------------------------------------------------
