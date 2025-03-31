@@ -100,7 +100,7 @@ local filtered_inventory_updater = {
 }
 
 local function find_section(entity)
-    for _, section in pairs(entity.get_requester_point().sections) do
+    for _, section in pairs(entity.get_logistic_point(defines.logistic_member_index.logistic_container).sections) do
         if section.is_manual then
             return section
         end
@@ -109,7 +109,11 @@ end
 
 local logistic_chest_updater = {
     condition = function(entity)
-        return entity.type == "logistic-container" and (entity.prototype.logistic_mode == "buffer" or entity.prototype.logistic_mode == "requester")
+        if fh_util.get_effective_type(entity) ~= "logistic-container" then
+            return false
+        end
+        local logistic_mode = fh_util.get_effective_prototype(entity).logistic_mode
+        return logistic_mode == "buffer" or logistic_mode == "requester"
     end,
     button_description = { "fh.tooltip-requests" },
     get_active_items = function(entity)
@@ -197,7 +201,7 @@ local logistic_chest_updater = {
 
 local one_filter_updater = {
     condition = function(entity)
-        return entity.filter_slot_count == 1 and entity.type ~= "infinity-container"
+        return entity.filter_slot_count == 1 and fh_util.get_effective_type(entity) ~= "infinity-container"
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
@@ -216,7 +220,7 @@ local one_filter_updater = {
 
 local many_filters_updater = {
     condition = function(entity)
-        return entity.filter_slot_count > 1 and entity.type ~= "infinity-container"
+        return entity.filter_slot_count > 1 and fh_util.get_effective_type(entity) ~= "infinity-container"
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
@@ -239,7 +243,7 @@ local many_filters_updater = {
             end
         end
         if found_slot then
-            local filter_to_set = entity.type == "mining-drill" and clicked_item.name or clicked_item
+            local filter_to_set = fh_util.get_effective_type(entity) == "mining-drill" and clicked_item.name or clicked_item
             entity.set_filter(found_slot, filter_to_set)
             return
         end
@@ -259,7 +263,7 @@ local many_filters_updater = {
 
 local splitter_filter_updater = {
     condition = function(entity)
-        return entity.type == "splitter"
+        return fh_util.get_effective_type(entity) == "splitter"
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
@@ -279,9 +283,6 @@ local splitter_filter_updater = {
 }
 
 return function(entity)
-    if entity.type == "entity-ghost" then
-        return
-    end
     for _, updater in pairs { logistic_chest_updater, filtered_inventory_updater, many_filters_updater, one_filter_updater, splitter_filter_updater } do
         if updater.condition(entity) then
             return {

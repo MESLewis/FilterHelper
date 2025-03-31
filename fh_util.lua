@@ -41,4 +41,12 @@ function fh_util.is_same_item(item1, item2)
     return item1 and item2 and item1.name == item2.name and item1.quality == item2.quality
 end
 
+function fh_util.get_effective_type(entity)
+    return entity.type == "entity-ghost" and entity.ghost_type or entity.type
+end
+
+function fh_util.get_effective_prototype(entity)
+    return entity.type == "entity-ghost" and entity.ghost_prototype or entity.prototype
+end
+
 return fh_util

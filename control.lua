@@ -30,7 +30,8 @@ local function spoil_closure(items, exclude_inputs)
     while next(items) do
         local new_items = {}
         for _, item in pairs(items) do
-            local spoil_result = prototypes.item[item.name].spoil_result
+            local item_prototype = prototypes.item[item.name]
+            local spoil_result = item_prototype and item_prototype.spoil_result
             if spoil_result and not result[fh_util.make_item_id(spoil_result.name, item.quality)] then
                 fh_util.add_item_to_table(new_items, spoil_result, item.quality)
                 fh_util.add_item_to_table(result, spoil_result, item.quality)
@@ -49,19 +50,36 @@ local function build_sprite_buttons(player_global, updater)
     local active_items = player_global.active_items
 
     for item_id, item in pairs(items) do
+        local elem_type
+        local prototype_name
+        local item_value
+        if prototypes.item[item.name] then
+            elem_type = "item-with-quality"
+            prototype_name = "item"
+            item_value = item
+        elseif prototypes.fluid[item.name] then
+            elem_type = "fluid"
+            prototype_name = "fluid"
+            item_value = item.name
+        else
+            goto continue
+        end
+
         local button = button_table.add {
             type = "choose-elem-button",
-            elem_type = "item-with-quality",
-            ["item-with-quality"] = item,
+            elem_type = elem_type,
+            [elem_type] = item_value,
             tags = {
                 action = active_items[item_id] and "fh_deselect_button" or "fh_select_button",
                 item = item,
             },
-            tooltip = { "fh.button-tooltip", prototypes.item[item.name].localised_name, updater.button_description },
+            tooltip = { "fh.button-tooltip", prototypes[prototype_name][item.name].localised_name, updater.button_description },
             style = active_items[item_id] and "yellow_slot_button" or "slot_button",
             mouse_button_filter = { "left", "right" },
         }
         button.locked = true
+
+        :: continue ::
     end
 end
 
@@ -84,9 +102,9 @@ local function build_interface(player_global)
         ["mining-drill"] = defines.relative_gui_type.mining_drill_gui,
         ["inserter"] = defines.relative_gui_type.inserter_gui,
     }
-    local relative_gui_type = guis_table[player_global.entity.type]
+    local relative_gui_type = guis_table[fh_util.get_effective_type(player_global.entity)]
     if not relative_gui_type then
-        return
+        relative_gui_type = defines.relative_gui_type.inserter_gui
     end
 
     local anchor = {
@@ -245,7 +263,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
-    if target.type == "assembling-machine" then
+    if fh_util.get_effective_type(target) == "assembling-machine" then
         local recipe, quality = target.get_recipe()
         if recipe then
             local has_quality = target.effects and target.effects.quality and target.effects.quality > 0
@@ -313,7 +331,8 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
-    if (target.type == "assembling-machine" or target.type == "rocket-silo") then
+    local effective_type = fh_util.get_effective_type(target)
+    if effective_type == "assembling-machine" or effective_type == "rocket-silo" then
         local recipe, quality = target.get_recipe()
         if recipe then
             for _, ingredient in pairs(recipe.ingredients) do
@@ -332,7 +351,7 @@ end
 ---@param ignore_slots boolean?
 ---Adds to the filter item list for an inserter
 function FilterHelper.add_items_inserter(entity, items, ignore_slots)
-    if entity.type == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
+    if fh_util.get_effective_type(entity) == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
         local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
 
         if #pickup_target_list > 0 then
@@ -384,7 +403,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
-    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then
+    if fh_util.get_effective_type(entity) ~= "loader" and fh_util.get_effective_type(entity) ~= "loader-1x1" then
         return
     end
 
@@ -425,7 +444,8 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_chest(entity, items)
-    if entity.type == "container" or entity.type == "logistic-container" then
+    local effective_type = fh_util.get_effective_type(entity)
+    if effective_type == "container" or effective_type == "logistic-container" then
         -- contents
         add_inventory_items(items, entity.get_output_inventory())
 
@@ -446,7 +466,7 @@ end
 ---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_vehicle(entity, items)
     -- contents
-    if contains({ "car", "cargo-wagon", "spider-vehicle" }, entity.type) then
+    if contains({ "car", "cargo-wagon", "spider-vehicle" }, fh_util.get_effective_type(entity)) then
         for _, inventory_type in pairs { defines.inventory.car_trunk, defines.inventory.cargo_wagon, defines.inventory.spider_trunk } do
             local inventory = entity.get_inventory(inventory_type)
             if inventory then
@@ -461,17 +481,15 @@ end
 ---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_miner(entity, items)
     -- contents
-    if entity.type == "mining-drill" then
-        local radius = entity.prototype.mining_drill_radius
+    if fh_util.get_effective_type(entity) == "mining-drill" then
+        local radius = fh_util.get_effective_prototype(entity).mining_drill_radius
         for _, resource in pairs(entity.surface.find_entities_filtered {
             area = { { entity.position.x - radius, entity.position.y - radius }, { entity.position.x + radius, entity.position.y + radius } },
             type = "resource",
         }) do
             local mineable_properties = resource.prototype.mineable_properties
             for _, result in pairs(mineable_properties.products or {}) do
-                if result.type == "item" then
-                    fh_util.add_item_to_table(items, result)
-                end
+                fh_util.add_item_to_table(items, result)
             end
         end
     end
@@ -554,7 +572,7 @@ end)
 script.on_event(defines.events.on_gui_opened, function(event)
     -- the entity that is opened
     local player_global = get_player_global(event.player_index)
-    if player_global and event.entity and event.entity.type ~= "proxy-container" then
+    if player_global and event.entity and fh_util.get_effective_type(event.entity) ~= "proxy-container" then
         player_global.entity = event.entity
         update_ui(player_global, true)
     end
