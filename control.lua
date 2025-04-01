@@ -30,7 +30,8 @@ local function spoil_closure(items, exclude_inputs)
     while next(items) do
         local new_items = {}
         for _, item in pairs(items) do
-            local spoil_result = prototypes.item[item.name].spoil_result
+            local item_prototype = prototypes.item[item.name]
+            local spoil_result = item_prototype and item_prototype.spoil_result
             if spoil_result and not result[fh_util.make_item_id(spoil_result.name, item.quality)] then
                 fh_util.add_item_to_table(new_items, spoil_result, item.quality)
                 fh_util.add_item_to_table(result, spoil_result, item.quality)
@@ -49,19 +50,36 @@ local function build_sprite_buttons(player_global, updater)
     local active_items = player_global.active_items
 
     for item_id, item in pairs(items) do
+        local elem_type
+        local prototype_name
+        local item_value
+        if prototypes.item[item.name] then
+            elem_type = "item-with-quality"
+            prototype_name = "item"
+            item_value = item
+        elseif prototypes.fluid[item.name] then
+            elem_type = "fluid"
+            prototype_name = "fluid"
+            item_value = item.name
+        else
+            goto continue
+        end
+
         local button = button_table.add {
             type = "choose-elem-button",
-            elem_type = "item-with-quality",
-            ["item-with-quality"] = item,
+            elem_type = elem_type,
+            [elem_type] = item_value,
             tags = {
                 action = active_items[item_id] and "fh_deselect_button" or "fh_select_button",
                 item = item,
             },
-            tooltip = { "fh.button-tooltip", prototypes.item[item.name].localised_name, updater.button_description },
+            tooltip = { "fh.button-tooltip", prototypes[prototype_name][item.name].localised_name, updater.button_description },
             style = active_items[item_id] and "yellow_slot_button" or "slot_button",
             mouse_button_filter = { "left", "right" },
         }
         button.locked = true
+
+        :: continue ::
     end
 end
 
