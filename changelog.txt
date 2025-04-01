@@ -3,6 +3,7 @@ Version: 0.2.14
 Date: ????
   Bugfixes:
     - Actually support fluid filters on fluid mining drills. Fixed bad commit.
+    - Do not crash on ghost loaders
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.13
 Date: 2025-03-31

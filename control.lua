@@ -213,29 +213,13 @@ end
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
----Adds to the filter item list for an underground belt
-function FilterHelper.add_items_underground_belt(entity, items)
-    if entity.type ~= "underground-belt" then
-        return
-    end
-
-    FilterHelper.add_items_transport_belt_connectable(entity, items)
-end
-
----@param entity LuaEntity
----@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being interacted with
 function FilterHelper.add_items_interact_target_entity(target, items)
     if target.type == "transport-belt" then
         FilterHelper.add_items_belt(target, items)
     end
-    if target.type == "splitter" then
-        FilterHelper.add_items_transport_belt_connectable(target, items)
-    end
-    if target.type == "underground-belt" then
-        FilterHelper.add_items_transport_belt_connectable(target, items)
-    end
-    if target.type == "loader" or target.type == "loader-1x1" then
+
+    if contains({"splitter", "underground-belt", "loader", "loader-1x1"}, target.type) then
         FilterHelper.add_items_transport_belt_connectable(target, items)
     end
 end
@@ -403,7 +387,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
-    if fh_util.get_effective_type(entity) ~= "loader" and fh_util.get_effective_type(entity) ~= "loader-1x1" then
+    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then
         return
     end
 
