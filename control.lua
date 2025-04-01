@@ -243,6 +243,29 @@ function FilterHelper.add_items_burnt_results_entity(entity, items)
     end
 end
 
+local function crafter_has_quality(entity)
+    if entity.effects and entity.effects.quality and entity.effects.quality > 0 then
+        return true
+    end
+    local proxy = entity
+    if entity.type ~= "entity-ghost" then
+        proxy = entity.surface.find_entity("item-request-proxy", entity.position)
+        if not proxy or proxy.proxy_target ~= entity then
+            return false
+        end
+    end
+    for _, request in pairs(proxy.item_requests) do
+        local module = prototypes.item[request.name]
+        if module and module.type == "module" then
+            local effects = module.module_effects
+            if effects and effects.quality and effects.quality > 0 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
@@ -250,7 +273,7 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     if fh_util.get_effective_type(target) == "assembling-machine" then
         local recipe, quality = target.get_recipe()
         if recipe then
-            local has_quality = target.effects and target.effects.quality and target.effects.quality > 0
+            local has_quality = crafter_has_quality(target)
             while quality do
                 for _, product in pairs(recipe.products) do
                     if product.type == "item" then

@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.14
 Date: ????
+  Changes:
+    - Added support for requested quality modules on crafting machines
   Bugfixes:
     - Actually support fluid filters on fluid mining drills. Fixed bad commit.
     - Do not crash on ghost loaders
