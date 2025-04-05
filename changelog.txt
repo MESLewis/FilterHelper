@@ -2,6 +2,7 @@
 Version: 0.2.15
 Date: ????
   Changes:
+    - For assembling machine output inserters, add shortcuts for spoiled ingredients
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.14
 Date: 2025-04-01
