@@ -287,7 +287,11 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
             end
         end
     end
-    add_inventory_items(items, target.get_output_inventory())
+    local inventory = target.get_output_inventory()
+    if target.type == "proxy-container" and target.proxy_target_entity then
+        inventory = target.proxy_target_entity.get_inventory(target.proxy_target_inventory)
+    end
+    add_inventory_items(items, inventory)
     FilterHelper.add_items_burnt_results_entity(target, items)
     FilterHelper.add_items_spoiled_fuel_entity(target, items)
     FilterHelper.add_items_interact_target_entity(target, items)
