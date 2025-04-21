@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.15
-Date: ????
+Date: 2025-04-21
   Changes:
     - Support for getting inventory of proxy containers
   Bugfixes:
