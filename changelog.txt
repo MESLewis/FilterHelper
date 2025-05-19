@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.16
 Date: ????
+  Changes:
+    - Enable "Use filters" when setting a filter on an inserter, configurable
   Fixes:
     - Fixed filtering mining drill resources when product name is different
 ---------------------------------------------------------------------------------------------------

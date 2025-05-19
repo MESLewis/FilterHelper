@@ -243,8 +243,12 @@ local many_filters_updater = {
             end
         end
         if found_slot then
-            local filter_to_set = fh_util.get_effective_type(entity) == "mining-drill" and clicked_item.name or clicked_item
+            local effective_type = fh_util.get_effective_type(entity)
+            local filter_to_set = effective_type == "mining-drill" and clicked_item.name or clicked_item
             entity.set_filter(found_slot, filter_to_set)
+            if effective_type == "inserter" and settings.global["fh-set-filter-on-inserter"].value then
+                entity.use_filters = true
+            end
             return
         end
         return { "fh.filters-full" }
