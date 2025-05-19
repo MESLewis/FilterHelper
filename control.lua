@@ -498,10 +498,7 @@ function FilterHelper.add_items_miner(entity, items)
             area = { { entity.position.x - radius, entity.position.y - radius }, { entity.position.x + radius, entity.position.y + radius } },
             type = "resource",
         }) do
-            local mineable_properties = resource.prototype.mineable_properties
-            for _, result in pairs(mineable_properties.products or {}) do
-                fh_util.add_item_to_table(items, result)
-            end
+            fh_util.add_item_to_table(items, resource)
         end
     end
 end
