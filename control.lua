@@ -403,11 +403,22 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
-    if entity.type ~= "splitter" then
+    if fh_util.get_effective_type(entity) ~= "splitter" then
         return
     end
 
-    FilterHelper.add_items_transport_belt_connectable(entity, items)
+    local always_shown_item = settings.global["fh-default-item-on-splitter"].value
+    if always_shown_item and always_shown_item ~= "" then
+        if prototypes.item[always_shown_item] then
+            fh_util.add_item_to_table(items, always_shown_item)
+        else
+            game.print("FilterHelper: Unknown default item " .. always_shown_item)
+        end
+    end
+
+    if entity.type == "splitter" then
+        FilterHelper.add_items_transport_belt_connectable(entity, items)
+    end
 end
 
 ---@param entity LuaEntity
