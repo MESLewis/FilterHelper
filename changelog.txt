@@ -1,7 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.17
 Date: ????
-  Changes:
+  Bugfixes:
+    - Fixed crash when setting "Full chest" request on ghost logistic containers
+  Fixes:
+    - Support for setting "Full chest" requests on quality logistic containers
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.16
 Date: 2025-05-19

@@ -155,7 +155,7 @@ local logistic_chest_updater = {
             amount_to_set = found_count + 5 * stack_size
         end
         if modifiers.control then
-            amount_to_set = stack_size * #entity.get_output_inventory()
+            amount_to_set = stack_size * fh_util.get_effective_prototype(entity).get_inventory_size(defines.inventory.chest, entity.quality)
         end
         if found_filter then
             found_filter.min = amount_to_set
