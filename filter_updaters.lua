@@ -267,7 +267,8 @@ local many_filters_updater = {
 
 local splitter_filter_updater = {
     condition = function(entity)
-        return fh_util.get_effective_type(entity) == "splitter"
+        local effective_type = fh_util.get_effective_type(entity)
+        return effective_type == "splitter" or effective_type == "lane-splitter"
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)

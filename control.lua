@@ -93,6 +93,7 @@ local function build_interface(player_global)
 
     local guis_table = {
         ["splitter"] = defines.relative_gui_type.splitter_gui,
+        ["lane-splitter"] = defines.relative_gui_type.splitter_gui,
         ["logistic-container"] = defines.relative_gui_type.container_gui,
         ["loader"] = defines.relative_gui_type.loader_gui,
         ["loader-1x1"] = defines.relative_gui_type.loader_gui,
@@ -219,7 +220,7 @@ function FilterHelper.add_items_interact_target_entity(target, items)
         FilterHelper.add_items_belt(target, items)
     end
 
-    if contains({"splitter", "underground-belt", "loader", "loader-1x1"}, target.type) then
+    if contains({"splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, target.type) then
         FilterHelper.add_items_transport_belt_connectable(target, items)
     end
 end
@@ -403,7 +404,8 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
-    if fh_util.get_effective_type(entity) ~= "splitter" then
+    local effective_type = fh_util.get_effective_type(entity)
+    if effective_type ~= "splitter" and effective_type ~= "lane-splitter" then
         return
     end
 
@@ -416,7 +418,7 @@ function FilterHelper.add_items_splitter(entity, items)
         end
     end
 
-    if entity.type == "splitter" then
+    if entity.type == "splitter" or entity.type == "lane-splitter" then
         FilterHelper.add_items_transport_belt_connectable(entity, items)
     end
 end
