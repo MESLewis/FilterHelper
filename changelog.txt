@@ -3,6 +3,7 @@ Version: 0.2.18
 Date: ????
   Changes:
     - Added support for working across belt ghosts
+    - Added support for working across splitters
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.17
 Date: 2025-06-01

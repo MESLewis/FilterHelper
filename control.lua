@@ -203,7 +203,7 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     upstream = upstream or 10 -- number of belts upstream (inputs) of this belt to check for filter items
     downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
-    if fh_util.get_effective_type(entity) == "transport-belt" then
+    if contains({"transport-belt", "splitter", "lane-splitter"}, fh_util.get_effective_type(entity)) then
         FilterHelper.add_items_belt_inventory(entity, items)
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
