@@ -182,6 +182,17 @@ end
 
 local FilterHelper = {}
 
+function FilterHelper.add_items_belt_inventory(entity, items)
+    if entity.type == "entity-ghost" then
+        return
+    end
+    for i = 1, entity.get_max_transport_line_index() do
+        for _, item in pairs(entity.get_transport_line(i).get_contents()) do
+            fh_util.add_item_to_table(items, item)
+        end
+    end
+end
+
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---@param upstream uint?
@@ -192,13 +203,8 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     upstream = upstream or 10 -- number of belts upstream (inputs) of this belt to check for filter items
     downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
-    if entity.type == "transport-belt" then
-        for i = 1, entity.get_max_transport_line_index() do
-            ---@type uint
-            for _, item in pairs(entity.get_transport_line(i).get_contents()) do
-                fh_util.add_item_to_table(items, item)
-            end
-        end
+    if fh_util.get_effective_type(entity) == "transport-belt" then
+        FilterHelper.add_items_belt_inventory(entity, items)
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
                 FilterHelper.add_items_belt(belt, items, upstream - 1, 0)
@@ -216,11 +222,13 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being interacted with
 function FilterHelper.add_items_interact_target_entity(target, items)
-    if target.type == "transport-belt" then
+    local effective_type = fh_util.get_effective_type(target)
+
+    if effective_type == "transport-belt" then
         FilterHelper.add_items_belt(target, items)
     end
 
-    if contains({"splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, target.type) then
+    if contains({"splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, effective_type) then
         FilterHelper.add_items_transport_belt_connectable(target, items)
     end
 end
@@ -343,8 +351,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
-    local effective_type = fh_util.get_effective_type(target)
-    if effective_type == "assembling-machine" or effective_type == "rocket-silo" then
+    if contains({ "assembling-machine", "rocket-silo" }, fh_util.get_effective_type(target)) then
         local recipe, quality = target.get_recipe()
         if recipe then
             for _, ingredient in pairs(recipe.ingredients) do
@@ -385,13 +392,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on the connected transport belts
 function FilterHelper.add_items_transport_belt_connectable(entity, items)
-    for i = 1, entity.get_max_transport_line_index() do
-        ---@type uint
-        local transport_line = entity.get_transport_line(i)
-        for _, item in pairs(transport_line.get_contents()) do
-            fh_util.add_item_to_table(items, item)
-        end
-    end
+    FilterHelper.add_items_belt_inventory(entity, items)
     for _, belt in pairs(entity.belt_neighbours.inputs) do
         FilterHelper.add_items_belt(belt, items, nil, 0)
     end
@@ -404,8 +405,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
-    local effective_type = fh_util.get_effective_type(entity)
-    if effective_type ~= "splitter" and effective_type ~= "lane-splitter" then
+    if not contains({"splitter", "lane-splitter"}, fh_util.get_effective_type(entity)) then
         return
     end
 
@@ -418,22 +418,20 @@ function FilterHelper.add_items_splitter(entity, items)
         end
     end
 
-    if entity.type == "splitter" or entity.type == "lane-splitter" then
-        FilterHelper.add_items_transport_belt_connectable(entity, items)
-    end
+    FilterHelper.add_items_transport_belt_connectable(entity, items)
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
-    if entity.type ~= "loader" and entity.type ~= "loader-1x1" then
+    if not contains({"loader", "loader-1x1"}, fh_util.get_effective_type(entity)) then
         return
     end
 
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 
-    if entity.loader_container and entity.loader_container.valid then
+    if entity.type ~= "entity-ghost" and entity.loader_container and entity.loader_container.valid then
         if entity.loader_type == "input" then
             FilterHelper.add_items_drop_target_entity(entity.loader_container, items)
         elseif entity.loader_type == "output" then
@@ -468,8 +466,7 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_chest(entity, items)
-    local effective_type = fh_util.get_effective_type(entity)
-    if effective_type == "container" or effective_type == "logistic-container" then
+    if contains({"container", "logistic-container"}, fh_util.get_effective_type(entity)) then
         -- contents
         add_inventory_items(items, entity.get_output_inventory())
 
