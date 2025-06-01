@@ -4,6 +4,7 @@ Date: ????
   Changes:
     - Added support for working across belt ghosts
     - Added support for working across splitters
+    - Added support for working across underground belts
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.17
 Date: 2025-06-01

@@ -203,7 +203,8 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     upstream = upstream or 10 -- number of belts upstream (inputs) of this belt to check for filter items
     downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
-    if contains({"transport-belt", "splitter", "lane-splitter"}, fh_util.get_effective_type(entity)) then
+    local effective_type = fh_util.get_effective_type(entity)
+    if contains({"transport-belt", "splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, effective_type) then
         FilterHelper.add_items_belt_inventory(entity, items)
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
@@ -216,6 +217,15 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
             end
         end
     end
+    if effective_type == "underground-belt" then
+        FilterHelper.add_items_belt_inventory(entity, items)
+        if upstream > 0 and entity.belt_to_ground_type == "output" and entity.neighbours then
+            FilterHelper.add_items_belt(entity.neighbours, items, upstream - 1, 0)
+        end
+        if downstream > 0 and entity.belt_to_ground_type == "input" and entity.neighbours then
+            FilterHelper.add_items_belt(entity.neighbours, items, 0, downstream - 1)
+        end
+    end
 end
 
 ---@param entity LuaEntity
@@ -224,11 +234,7 @@ end
 function FilterHelper.add_items_interact_target_entity(target, items)
     local effective_type = fh_util.get_effective_type(target)
 
-    if effective_type == "transport-belt" then
-        FilterHelper.add_items_belt(target, items)
-    end
-
-    if contains({"splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, effective_type) then
+    if contains({"splitter", "lane-splitter", "transport-belt", "underground-belt", "loader", "loader-1x1"}, effective_type) then
         FilterHelper.add_items_transport_belt_connectable(target, items)
     end
 end
@@ -392,13 +398,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on the connected transport belts
 function FilterHelper.add_items_transport_belt_connectable(entity, items)
-    FilterHelper.add_items_belt_inventory(entity, items)
-    for _, belt in pairs(entity.belt_neighbours.inputs) do
-        FilterHelper.add_items_belt(belt, items, nil, 0)
-    end
-    for _, belt in pairs(entity.belt_neighbours.outputs) do
-        FilterHelper.add_items_belt(belt, items, 0, nil)
-    end
+    FilterHelper.add_items_belt(entity, items, nil, nil)
 end
 
 ---@param entity LuaEntity
