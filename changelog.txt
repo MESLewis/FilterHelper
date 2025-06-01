@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.17
-Date: ????
+Date: 2025-06-01
   Changes:
     - Added support for default item to show on splitters
     - Added support for lane splitters
