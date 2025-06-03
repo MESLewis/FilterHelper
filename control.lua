@@ -640,18 +640,5 @@ script.on_event(defines.events.on_gui_click, function(event)
     end
 end)
 
--- we need to close the ui on click and open it a tick later
--- to visually update the filter ui
--- if https://forums.factorio.com/viewtopic.php?f=7&t=106300 gets addressed,
--- this close/reopen GUI business can be removed
-script.on_event(defines.events.on_tick, function(event)
-    for _, player in pairs(game.players) do
-        local player_global = get_player_global(player.index)
-        if player_global then
-            update_ui(player_global, event.tick % 60 == 0)
-        end
-    end
-end)
-
 -- TODO options for what things are considered. Chests, transport lines, etc
 -- TODO recently used section
