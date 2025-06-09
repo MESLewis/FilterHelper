@@ -13,6 +13,16 @@ local function get_storage_inventory(entity)
     end
 end
 
+local function update_filter_slot(entity, slot, clicked_item)
+    local effective_type = fh_util.get_effective_type(entity)
+    local filter_to_set = effective_type == "mining-drill" and clicked_item.name or clicked_item
+    entity.set_filter(slot, filter_to_set)
+
+    if effective_type == "inserter" and settings.global["fh-set-filter-on-inserter"].value then
+        entity.use_filters = true
+    end
+end
+
 local filtered_inventory_updater = {
     condition = function(entity)
         local inventory = get_storage_inventory(entity)
@@ -211,7 +221,7 @@ local one_filter_updater = {
         return active_items
     end,
     add = function(entity, clicked_item)
-        entity.set_filter(1, clicked_item)
+        update_filter_slot(entity, 1, clicked_item)
     end,
     remove = function(entity, clicked_item)
         entity.set_filter(1, nil)
@@ -243,12 +253,7 @@ local many_filters_updater = {
             end
         end
         if found_slot then
-            local effective_type = fh_util.get_effective_type(entity)
-            local filter_to_set = effective_type == "mining-drill" and clicked_item.name or clicked_item
-            entity.set_filter(found_slot, filter_to_set)
-            if effective_type == "inserter" and settings.global["fh-set-filter-on-inserter"].value then
-                entity.use_filters = true
-            end
+            update_filter_slot(entity, found_slot, clicked_item)
             return
         end
         return { "fh.filters-full" }
