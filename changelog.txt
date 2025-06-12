@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.19
-Date: ????
+Date: 2025-06-12
   Changes:
     - Fixed automatic "Use filters" setting for inserters with just one filter slot (such as mechanical inserters from Pyanodons)
 ---------------------------------------------------------------------------------------------------
