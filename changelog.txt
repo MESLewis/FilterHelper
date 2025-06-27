@@ -2,6 +2,7 @@
 Version: 0.2.20
 Date: ????
   Changes:
+    - Set a filter on a splitter to the direction without an output belt
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.19
 Date: 2025-06-12

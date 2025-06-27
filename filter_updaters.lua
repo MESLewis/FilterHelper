@@ -284,7 +284,20 @@ local splitter_filter_updater = {
     add = function(entity, clicked_item)
         entity.splitter_filter = { name = clicked_item.name, quality = clicked_item.quality }
         if entity.splitter_output_priority == "none" then
-            entity.splitter_output_priority = "left"
+            local outputs = entity.belt_neighbours.outputs
+            if #outputs == 1 then
+                local vec_x = outputs[1].position.x - entity.position.x
+                local vec_y = outputs[1].position.y - entity.position.y
+                local on_right = (
+                    (entity.direction == defines.direction.north and vec_x > 0) or
+                    (entity.direction == defines.direction.south and vec_x < 0) or
+                    (entity.direction == defines.direction.east and vec_y > 0) or
+                    (entity.direction == defines.direction.west and vec_y < 0)
+                )
+                entity.splitter_output_priority = on_right and "left" or "right"
+            else
+                entity.splitter_output_priority = "left"
+            end
         end
     end,
     remove = function(entity, clicked_item)
