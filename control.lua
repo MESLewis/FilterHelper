@@ -1,6 +1,15 @@
 local get_filter_updater = require("filter_updaters")
 local fh_util = require("fh_util")
 
+-- validate the mod data to ensure each entity name exists and points to a valid remote interface.
+for _, hook in ipairs({"fh_add_items_drop_target_entity", "fh_add_items_pickup_target_entity"}) do
+    for entity_name, data in pairs(prototypes.mod_data[hook].data) do
+        assert(prototypes.entity[entity_name], string.format('prototypes.entity["%s"] == nil', entity_name))
+        -- assert(remote.interfaces[data[1]], string.format('remote.interfaces["%s"] == nil', data[1]))
+        -- assert(remote.interfaces[data[1]][data[2]], string.format('remote.interfaces["%s"]["%s"] == nil', data[1], data[2]))
+    end
+end
+
 local function contains(table, val)
     for i = 1, #table do
         if table[i] == val then
@@ -285,6 +294,14 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
+    local mod_data = prototypes.mod_data["fh_add_items_pickup_target_entity"].get(target.name)
+    if mod_data then
+        for _, item in ipairs(remote.call(mod_data[1], mod_data[2], target, {})) do
+            fh_util.add_item_to_table(items, item)
+        end
+        return
+    end
+
     if fh_util.get_effective_type(target) == "assembling-machine" then
         local recipe, quality = target.get_recipe()
         if recipe then
@@ -357,6 +374,14 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
+    local mod_data = prototypes.mod_data["fh_add_items_drop_target_entity"].get(target.name)
+    if mod_data then
+        for _, item in ipairs(remote.call(mod_data[1], mod_data[2], target, {})) do
+            fh_util.add_item_to_table(items, item)
+        end
+        return
+    end
+
     if contains({ "assembling-machine", "rocket-silo" }, fh_util.get_effective_type(target)) then
         local recipe, quality = target.get_recipe()
         if recipe then
