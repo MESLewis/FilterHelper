@@ -372,12 +372,12 @@ end
 function FilterHelper.add_items_inserter(entity, items, ignore_slots, ignored_entity)
     if fh_util.get_effective_type(entity) == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
         for _, target in pairs(entity.surface.find_entities_filtered { position = entity.pickup_position }) do
-            if target ~= ignored_entity then
+            if target ~= ignored_entity and not target.prototype.has_flag("no-automated-item-removal") then
                 FilterHelper.add_items_pickup_target_entity(target, items)
             end
         end
         for _, target in pairs(entity.surface.find_entities_filtered { position = entity.drop_position }) do
-            if target ~= ignored_entity then
+            if target ~= ignored_entity and not target.prototype.has_flag("no-automated-item-insertion") then
                 FilterHelper.add_items_drop_target_entity(target, items)
             end
         end
