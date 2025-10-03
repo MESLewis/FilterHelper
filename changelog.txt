@@ -2,6 +2,7 @@
 Version: 0.2.22
 Date: ????
   Changes:
+    - Added spoiled ingredients to output inserters
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.21
 Date: 2025-10-03

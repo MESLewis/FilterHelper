@@ -292,6 +292,15 @@ function FilterHelper.add_items_assembling_machine_output(target, items)
         if not recipe then
             return
         end
+
+        -- Add spoiled ingredients as outputs
+        for _, ingredient in pairs(recipe.ingredients) do
+            if ingredient.type == "item" then
+                fh_util.add_item_to_table(items, ingredient.spoil_result, quality)
+            end
+        end
+
+        -- Add quality outputs
         local has_quality = crafter_has_quality(target)
         while quality do
             for _, product in pairs(recipe.products) do
@@ -330,16 +339,11 @@ function FilterHelper.add_items_fuel_entity_output(entity, items)
         return
     end
 
-    local fuel_items = {}
     for fuel_category, _ in pairs(entity.burner.fuel_categories) do
         for _, item_prototype in pairs(get_items_by_fuel_category(fuel_category)) do
             fh_util.add_item_to_table(items, item_prototype.burnt_result)
-            fh_util.add_item_to_table(fuel_items, item_prototype)
+            fh_util.add_item_to_table(items, item_prototype.spoil_result)
         end
-    end
-
-    for _, item in pairs(spoil_closure(fuel_items, true)) do
-        fh_util.add_item_to_table(items, item)
     end
 end
 
