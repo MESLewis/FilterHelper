@@ -34,6 +34,23 @@ local function get_player_global(player_index)
     end
 end
 
+local fuel_category_to_items_cache
+local function get_items_by_fuel_category(fuel_category)
+    if not fuel_category_to_items_cache then
+        fuel_category_to_items_cache = {}
+        for _, item_prototype in pairs(prototypes.item) do
+            local item_fuel_category = item_prototype.fuel_category
+            if item_fuel_category then
+                if not fuel_category_to_items_cache[item_fuel_category] then
+                    fuel_category_to_items_cache[item_fuel_category] = {}
+                end
+                table.insert(fuel_category_to_items_cache[item_fuel_category], item_prototype)
+            end
+        end
+    end
+    return fuel_category_to_items_cache[fuel_category] or {}
+end
+
 local function spoil_closure(items, exclude_inputs)
     local result = exclude_inputs and {} or table.deepcopy(items)
     while next(items) do
@@ -237,36 +254,6 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     end
 end
 
----@param entity LuaEntity
----@param items table<string, ItemWithQuality>
----Adds to the filter item list based on an entity being interacted with
-function FilterHelper.add_items_interact_target_entity(target, items)
-    local effective_type = fh_util.get_effective_type(target)
-
-    if contains({"splitter", "lane-splitter", "transport-belt", "underground-belt", "loader", "loader-1x1"}, effective_type) then
-        FilterHelper.add_items_transport_belt_connectable(target, items)
-    end
-end
-
----@param entity LuaEntity
----@param items table<string, ItemWithQuality>
----Adds to the filter item list based on the result of burning fuel the entity burns
-function FilterHelper.add_items_burnt_results_entity(entity, items)
-    if not (entity.burner and entity.burner.valid) then
-        return
-    end
-
-    local fuel_categories = entity.burner.fuel_categories
-    for fuel_category, _ in pairs(fuel_categories) do
-        for _, item_prototype in pairs(prototypes.item) do
-            if item_prototype.fuel_category == fuel_category then
-                local burnt_result_prototype = item_prototype.burnt_result
-                fh_util.add_item_to_table(items, burnt_result_prototype)
-            end
-        end
-    end
-end
-
 local function crafter_has_quality(entity)
     if entity.effects and entity.effects.quality and entity.effects.quality > 0 then
         return true
@@ -290,7 +277,7 @@ local function crafter_has_quality(entity)
     return false
 end
 
----@param entity LuaEntity
+---@param target LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
@@ -302,66 +289,69 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
         return
     end
 
-    if fh_util.get_effective_type(target) == "assembling-machine" then
-        local recipe, quality = target.get_recipe()
-        if recipe then
-            local has_quality = crafter_has_quality(target)
-            while quality do
-                for _, product in pairs(recipe.products) do
-                    if product.type == "item" then
-                        fh_util.add_item_to_table(items, product, quality)
-                    end
-                end
-                if not has_quality then
-                    break
-                end
-                quality = quality.next
-            end
-        end
-    end
     local inventory = target.get_output_inventory()
     if target.type == "proxy-container" and target.proxy_target_entity then
         inventory = target.proxy_target_entity.get_inventory(target.proxy_target_inventory)
     end
     add_inventory_items(items, inventory)
-    FilterHelper.add_items_burnt_results_entity(target, items)
-    FilterHelper.add_items_spoiled_fuel_entity(target, items)
-    FilterHelper.add_items_interact_target_entity(target, items)
+    FilterHelper.add_items_assembling_machine_output(target, items)
+    FilterHelper.add_items_fuel_entity_output(target, items)
+    FilterHelper.add_items_transport_belt_connectable(target, items)
 end
+
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
----Adds to the filter item list based on the fuel the entity burns
-function FilterHelper.add_items_fuel_entity(entity, items)
-    if not (entity.burner and entity.burner.valid) then
-        return
-    end
-
-    local fuel_categories = entity.burner.fuel_categories
-    for fuel_category, _ in pairs(fuel_categories) do
-        for item_prototype_name, item_prototype in pairs(prototypes.item) do
-            if item_prototype.fuel_category == fuel_category then
-                fh_util.add_item_to_table(items, item_prototype_name)
+---Adds to the filter item list based on an assembling machine being taken from
+function FilterHelper.add_items_assembling_machine_output(target, items)
+    if fh_util.get_effective_type(target) == "assembling-machine" then
+        local recipe, quality = target.get_recipe()
+        if not recipe then
+            return
+        end
+        local has_quality = crafter_has_quality(target)
+        while quality do
+            for _, product in pairs(recipe.products) do
+                if product.type == "item" then
+                    fh_util.add_item_to_table(items, product, quality)
+                end
             end
+            if not has_quality then
+                break
+            end
+            quality = quality.next
         end
     end
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
----Adds to the filter item list based on the fuel the entity burns, if it spoils
-function FilterHelper.add_items_spoiled_fuel_entity(entity, items)
+---Adds to the filter item list based on the fuel the entity burns
+function FilterHelper.add_items_fuel_entity_input(entity, items)
+    if not (entity.burner and entity.burner.valid) then
+        return
+    end
+
+    for fuel_category, _ in pairs(entity.burner.fuel_categories) do
+        for _, item_prototype in pairs(get_items_by_fuel_category(fuel_category)) do
+            fh_util.add_item_to_table(items, item_prototype)
+        end
+    end
+end
+
+---@param entity LuaEntity
+---@param items table<string, ItemWithQuality>
+---Adds to the filter item list based on the fuel the entity burns, burnt/spoiler result
+function FilterHelper.add_items_fuel_entity_output(entity, items)
     if not (entity.burner and entity.burner.valid) then
         return
     end
 
     local fuel_items = {}
-    local fuel_categories = entity.burner.fuel_categories
-    for fuel_category, _ in pairs(fuel_categories) do
-        for item_prototype_name, item_prototype in pairs(prototypes.item) do
-            if item_prototype.fuel_category == fuel_category then
-                fh_util.add_item_to_table(fuel_items, item_prototype_name)
-            end
+    for fuel_category, _ in pairs(entity.burner.fuel_categories) do
+        for _, item_prototype in pairs(get_items_by_fuel_category(fuel_category)) do
+            fh_util.add_item_to_table(items, item_prototype.burnt_result)
+            fh_util.add_item_to_table(fuel_items, item_prototype)
         end
     end
 
@@ -370,7 +360,7 @@ function FilterHelper.add_items_spoiled_fuel_entity(entity, items)
     end
 end
 
----@param entity LuaEntity
+---@param target LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
@@ -392,27 +382,23 @@ function FilterHelper.add_items_drop_target_entity(target, items)
             end
         end
     end
-    FilterHelper.add_items_fuel_entity(target, items)
-    FilterHelper.add_items_interact_target_entity(target, items)
+    FilterHelper.add_items_fuel_entity_input(target, items)
+    FilterHelper.add_items_transport_belt_connectable(target, items)
 end
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---@param ignore_slots boolean?
 ---Adds to the filter item list for an inserter
-function FilterHelper.add_items_inserter(entity, items, ignore_slots)
+function FilterHelper.add_items_inserter(entity, items, ignore_slots, ignored_entity)
     if fh_util.get_effective_type(entity) == "inserter" and (ignore_slots or entity.filter_slot_count > 0) then
-        local pickup_target_list = entity.surface.find_entities_filtered { position = entity.pickup_position }
-
-        if #pickup_target_list > 0 then
-            for _, target in pairs(pickup_target_list) do
+        for _, target in pairs(entity.surface.find_entities_filtered { position = entity.pickup_position }) do
+            if target ~= ignored_entity then
                 FilterHelper.add_items_pickup_target_entity(target, items)
             end
         end
-
-        local drop_target_list = entity.surface.find_entities_filtered { position = entity.drop_position }
-        if #drop_target_list > 0 then
-            for _, target in pairs(drop_target_list) do
+        for _, target in pairs(entity.surface.find_entities_filtered { position = entity.drop_position }) do
+            if target ~= ignored_entity then
                 FilterHelper.add_items_drop_target_entity(target, items)
             end
         end
@@ -502,7 +488,7 @@ function FilterHelper.add_items_chest(entity, items)
 
         for _, inserter in pairs(entity.surface.find_entities_filtered { type = "inserter", area = area }) do
             if inserter.pickup_target == entity or inserter.drop_target == entity then
-                FilterHelper.add_items_inserter(inserter, items, true)
+                FilterHelper.add_items_inserter(inserter, items, true, entity)
             end
         end
     end
