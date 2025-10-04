@@ -221,7 +221,7 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     downstream = downstream or 10 -- number of belts downstream (outputs) of this belt to check for filter items
 
     local effective_type = fh_util.get_effective_type(entity)
-    if contains({"transport-belt", "splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1"}, effective_type) then
+    if contains({ "transport-belt", "splitter", "lane-splitter", "underground-belt", "loader", "loader-1x1" }, effective_type) then
         FilterHelper.add_items_belt_inventory(entity, items)
         if upstream > 0 then
             for _, belt in pairs(entity.belt_neighbours.inputs) do
@@ -281,7 +281,6 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     FilterHelper.add_items_fuel_entity_output(target, items)
     FilterHelper.add_items_transport_belt_connectable(target, items)
 end
-
 
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
@@ -395,7 +394,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a splitter
 function FilterHelper.add_items_splitter(entity, items)
-    if not contains({"splitter", "lane-splitter"}, fh_util.get_effective_type(entity)) then
+    if not contains({ "splitter", "lane-splitter" }, fh_util.get_effective_type(entity)) then
         return
     end
 
@@ -415,7 +414,7 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list for a loader
 function FilterHelper.add_items_loader(entity, items)
-    if not contains({"loader", "loader-1x1"}, fh_util.get_effective_type(entity)) then
+    if not contains({ "loader", "loader-1x1" }, fh_util.get_effective_type(entity)) then
         return
     end
 
@@ -456,7 +455,7 @@ end
 ---@param entity LuaEntity
 ---@param items table <string, ItemWithQuality>
 function FilterHelper.add_items_chest(entity, items)
-    if contains({"container", "logistic-container"}, fh_util.get_effective_type(entity)) then
+    if contains({ "container", "logistic-container" }, fh_util.get_effective_type(entity)) then
         -- contents
         add_inventory_items(items, entity.get_output_inventory())
 
@@ -630,10 +629,6 @@ script.on_event(defines.events.on_gui_click, function(event)
     end
 end)
 
--- we need to close the ui on click and open it a tick later
--- to visually update the filter ui
--- if https://forums.factorio.com/viewtopic.php?f=7&t=106300 gets addressed,
--- this close/reopen GUI business can be removed
 script.on_event(defines.events.on_tick, function(event)
     for _, player in pairs(game.players) do
         local player_global = get_player_global(player.index)
