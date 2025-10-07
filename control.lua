@@ -1,6 +1,23 @@
 local get_filter_updater = require("filter_updaters")
 local fh_util = require("fh_util")
 
+
+---@param hook_name string
+---@param entity LuaEntity
+---@param items table<string, ItemWithQuality>
+---@return boolean
+---Calls a remote hook on a target entity if needed. Returns true if the hook was used.
+local function call_items_hook(hook_name, entity, items)
+    local hook = prototypes.mod_data.fh_add_items_hooks.data[hook_name][fh_util.get_effective_name(entity)]
+    if not hook then
+        return false
+    end
+    for _, item in pairs(remote.call(hook[1], hook[2], entity)) do
+        fh_util.add_item_to_table(items, item)
+    end
+    return true
+end
+
 local function contains(table, val)
     for i = 1, #table do
         if table[i] == val then
@@ -272,6 +289,10 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being taken from
 function FilterHelper.add_items_pickup_target_entity(target, items)
+    if call_items_hook("pickup_target", target, items) then
+        return
+    end
+
     local inventory = target.get_output_inventory()
     if target.type == "proxy-container" and target.proxy_target_entity then
         inventory = target.proxy_target_entity.get_inventory(target.proxy_target_inventory)
@@ -350,6 +371,10 @@ end
 ---@param items table<string, ItemWithQuality>
 ---Adds to the filter item list based on an entity being given to
 function FilterHelper.add_items_drop_target_entity(target, items)
+    if call_items_hook("drop_target", target, items) then
+        return
+    end
+
     if contains({ "assembling-machine", "rocket-silo" }, fh_util.get_effective_type(target)) then
         local recipe, quality = target.get_recipe()
         if recipe then

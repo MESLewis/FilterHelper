@@ -45,6 +45,10 @@ function fh_util.get_effective_type(entity)
     return entity.type == "entity-ghost" and entity.ghost_type or entity.type
 end
 
+function fh_util.get_effective_name(entity)
+    return entity.type == "entity-ghost" and entity.ghost_name or entity.name
+end
+
 function fh_util.get_effective_prototype(entity)
     return entity.type == "entity-ghost" and entity.ghost_prototype or entity.prototype
 end
