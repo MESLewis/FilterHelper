@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.23
 Date: ????
+  Changes:
+    - Added support for multiple default items for splitters
   Bugfixes:
     - Added spoiled ingredients to output inserters (fixed)
 ---------------------------------------------------------------------------------------------------

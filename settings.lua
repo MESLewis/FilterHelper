@@ -12,7 +12,7 @@ data:extend {
         allow_blank = true,
         auto_trim = true,
         setting_type = "runtime-global",
-        default_value = "deconstruction-planner",
+        default_value = "deconstruction-planner,no-item",
         order = "b",
     },
 }

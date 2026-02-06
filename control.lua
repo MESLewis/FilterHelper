@@ -1,7 +1,6 @@
 local get_filter_updater = require("filter_updaters")
 local fh_util = require("fh_util")
 
-
 ---@param hook_name string
 ---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
@@ -423,12 +422,13 @@ function FilterHelper.add_items_splitter(entity, items)
         return
     end
 
-    local always_shown_item = settings.global["fh-default-item-on-splitter"].value
-    if always_shown_item and always_shown_item ~= "" then
-        if prototypes.item[always_shown_item] then
-            fh_util.add_item_to_table(items, always_shown_item)
-        else
-            game.print("FilterHelper: Unknown default item " .. always_shown_item)
+    for _, always_shown_item in pairs(util.split(settings.global["fh-default-item-on-splitter"].value, ",")) do
+        if always_shown_item and always_shown_item ~= "" then
+            if prototypes.item[always_shown_item] then
+                fh_util.add_item_to_table(items, always_shown_item)
+            else
+                game.print("FilterHelper: Unknown default item " .. always_shown_item)
+            end
         end
     end
 
