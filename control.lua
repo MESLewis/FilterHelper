@@ -316,7 +316,7 @@ function FilterHelper.add_items_assembling_machine_output(target, items)
         -- Add spoiled ingredients as outputs
         for _, ingredient in pairs(recipe.ingredients) do
             if ingredient.type == "item" then
-                fh_util.add_item_to_table(items, ingredient.spoil_result, quality)
+                fh_util.add_item_to_table(items, prototypes.item[ingredient.name].spoil_result, quality)
             end
         end
 
