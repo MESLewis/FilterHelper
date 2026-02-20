@@ -1,6 +1,6 @@
 {
     "name": "FilterHelper",
-    "version": "0.2.24",
+    "version": "0.2.25",
     "title": "Filter Helper",
     "description": "Adds context aware quick select for filter inserters.",
     "author": "Momo",
