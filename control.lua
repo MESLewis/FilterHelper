@@ -324,6 +324,7 @@ function FilterHelper.add_items_assembling_machine_output(target, items)
 
         -- Add quality outputs
         local has_quality = crafter_has_quality(target)
+        local skip_locked_qualities = settings.global["fh-show-only-unlocked-qualities"].value
         while quality do
             for _, product in pairs(recipe.products) do
                 if product.type == "item" then
@@ -334,6 +335,9 @@ function FilterHelper.add_items_assembling_machine_output(target, items)
                 break
             end
             quality = quality.next
+            if quality and skip_locked_qualities and not target.force.is_quality_unlocked(quality) then
+                break
+            end
         end
     end
 end

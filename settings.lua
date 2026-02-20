@@ -22,4 +22,11 @@ data:extend {
         default_value = true,
         order = "c",
     },
+    {
+        type = "bool-setting",
+        name = "fh-show-only-unlocked-qualities",
+        setting_type = "runtime-global",
+        default_value = false,
+        order = "d",
+    },
 }

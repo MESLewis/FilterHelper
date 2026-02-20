@@ -3,6 +3,7 @@ Version: 0.2.24
 Date: ????
   Changes:
     - Added option to not show fuel items unless in inputs, for mods with many fuel items
+    - Added option to not show result item qualities beyond unlocked qualities
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.23
 Date: 2026-02-06
