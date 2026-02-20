@@ -43,6 +43,9 @@ end
 
 local fuel_category_to_items_cache
 local function get_items_by_fuel_category(fuel_category)
+    if not settings.global["fh-add-fuel-items"].value then
+        return {}
+    end
     if not fuel_category_to_items_cache then
         fuel_category_to_items_cache = {}
         for _, item_prototype in pairs(prototypes.item) do

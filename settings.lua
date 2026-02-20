@@ -15,4 +15,11 @@ data:extend {
         default_value = "deconstruction-planner,no-item",
         order = "b",
     },
+    {
+        type = "bool-setting",
+        name = "fh-add-fuel-items",
+        setting_type = "runtime-global",
+        default_value = true,
+        order = "c",
+    },
 }
