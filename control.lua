@@ -255,11 +255,11 @@ function FilterHelper.add_items_belt(entity, items, upstream, downstream)
     end
     if effective_type == "underground-belt" then
         FilterHelper.add_items_belt_inventory(entity, items)
-        if upstream > 0 and entity.belt_to_ground_type == "output" and entity.neighbours then
-            FilterHelper.add_items_belt(entity.neighbours, items, upstream - 1, 0)
+        if upstream > 0 and entity.belt_to_ground_type == "output" and entity.underground_belt_neighbour then
+            FilterHelper.add_items_belt(entity.underground_belt_neighbour, items, upstream - 1, 0)
         end
-        if downstream > 0 and entity.belt_to_ground_type == "input" and entity.neighbours then
-            FilterHelper.add_items_belt(entity.neighbours, items, 0, downstream - 1)
+        if downstream > 0 and entity.belt_to_ground_type == "input" and entity.underground_belt_neighbour then
+            FilterHelper.add_items_belt(entity.underground_belt_neighbour, items, 0, downstream - 1)
         end
     end
 end
@@ -452,7 +452,7 @@ function FilterHelper.add_items_loader(entity, items)
 
     FilterHelper.add_items_transport_belt_connectable(entity, items)
 
-    if entity.type ~= "entity-ghost" and entity.loader_container and entity.loader_container.valid then
+     if entity.type ~= "entity-ghost" and entity.loader_container and entity.loader_container.valid then
         if entity.loader_type == "input" then
             FilterHelper.add_items_drop_target_entity(entity.loader_container, items)
         elseif entity.loader_type == "output" then
