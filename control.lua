@@ -299,6 +299,9 @@ function FilterHelper.add_items_pickup_target_entity(target, items)
     if target.type == "proxy-container" and target.proxy_target_entity then
         inventory = target.proxy_target_entity.get_inventory(target.proxy_target_inventory)
     end
+    if target.type == "cargo-bay" and prototypes.entity[target.name].allow_unloading and target.cargo_bay_connection_owner then
+        inventory = target.cargo_bay_connection_owner.get_output_inventory()
+    end
     add_inventory_items(items, inventory)
     FilterHelper.add_items_assembling_machine_output(target, items)
     FilterHelper.add_items_fuel_entity_output(target, items)
