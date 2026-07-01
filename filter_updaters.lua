@@ -228,6 +228,27 @@ local one_filter_updater = {
     end,
 }
 
+local fluid_filter_updater = {
+    condition = function(entity)
+        return fh_util.get_effective_type(entity) == "pump"
+    end,
+    button_description = { "fh.tooltip-filters" },
+    get_active_items = function(entity)
+        local active_items = {}
+        local filter = entity.get_fluid_filter(1)
+        if filter then
+            fh_util.add_item_to_table(active_items, filter.fluid)
+        end
+        return active_items
+    end,
+    add = function(entity, clicked_item)
+        entity.set_fluid_filter(1, {fluid = clicked_item.name})
+    end,
+    remove = function(entity, clicked_item)
+        entity.set_fluid_filter(1, nil)
+    end,
+}
+
 local many_filters_updater = {
     condition = function(entity)
         return entity.filter_slot_count > 1 and fh_util.get_effective_type(entity) ~= "infinity-container"
@@ -306,7 +327,7 @@ local splitter_filter_updater = {
 }
 
 return function(entity)
-    for _, updater in pairs { logistic_chest_updater, filtered_inventory_updater, many_filters_updater, one_filter_updater, splitter_filter_updater } do
+    for _, updater in pairs { logistic_chest_updater, filtered_inventory_updater, many_filters_updater, one_filter_updater, splitter_filter_updater, fluid_filter_updater } do
         if updater.condition(entity) then
             return {
                 get_active_items = function()

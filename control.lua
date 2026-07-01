@@ -138,6 +138,7 @@ local function build_interface(player_global)
         ["spider-vehicle"] = defines.relative_gui_type.spider_vehicle_gui,
         ["mining-drill"] = defines.relative_gui_type.mining_drill_gui,
         ["inserter"] = defines.relative_gui_type.inserter_gui,
+        ["pump"] = defines.relative_gui_type.pump_gui,
     }
     local relative_gui_type = guis_table[fh_util.get_effective_type(player_global.entity)]
     if not relative_gui_type then
@@ -538,6 +539,32 @@ function FilterHelper.add_items_miner(entity, items)
 end
 
 ---@param entity LuaEntity
+---@param items table <string, ItemWithQuality>
+function FilterHelper.add_items_pump(entity, items)
+    -- contents
+    if fh_util.get_effective_type(entity) == "pump" then
+        if entity.type ~= "entity-ghost" then
+            local fluid = entity.get_fluid(1)
+            if fluid then
+                fh_util.add_item_to_table(items, fluid)
+            end
+        end
+        for _, connection in pairs(entity.get_fluid_box_pipe_connections(1)) do
+            if connection.target then
+                local fluid_filter = connection.target.get_fluid_filter(connection.target_fluidbox_index)
+                if fluid_filter then
+                    fh_util.add_item_to_table(items, fluid_filter.fluid)
+                end
+                for fluid in pairs(connection.target.get_fluid_contents()) do
+                    fh_util.add_item_to_table(items, fluid)
+                end
+            end
+        end
+    end
+end
+
+
+---@param entity LuaEntity
 ---@param items table<string, ItemWithQuality>
 ---@return table<string, ItemWithQuality>
 ---Adds to the filter item list for the given entity
@@ -550,6 +577,7 @@ function FilterHelper.add_items(entity, items)
     FilterHelper.add_items_chest(entity, items)
     FilterHelper.add_items_vehicle(entity, items)
     FilterHelper.add_items_miner(entity, items)
+    FilterHelper.add_items_pump(entity, items)
     return items
 end
 
