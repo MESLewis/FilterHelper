@@ -692,11 +692,11 @@ script.on_event(defines.events.on_gui_click, function(event)
     end
 end)
 
-script.on_event(defines.events.on_tick, function(event)
+script.on_nth_tick(60, function(event)
     for _, player in pairs(game.players) do
         local player_global = get_player_global(player.index)
         if player_global then
-            update_ui(player_global, event.tick % 60 == 0)
+            update_ui(player_global, true)
         end
     end
 end)
