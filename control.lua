@@ -49,7 +49,7 @@ local function get_items_by_fuel_category(fuel_category)
     if not fuel_category_to_items_cache then
         fuel_category_to_items_cache = {}
         for _, item_prototype in pairs(prototypes.item) do
-            local item_fuel_category = item_prototype.fuel_category
+            local item_fuel_category = item_prototype.fuel_categories
             if item_fuel_category then
                 if not fuel_category_to_items_cache[item_fuel_category] then
                     fuel_category_to_items_cache[item_fuel_category] = {}
