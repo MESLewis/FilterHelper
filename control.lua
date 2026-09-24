@@ -49,12 +49,14 @@ local function get_items_by_fuel_category(fuel_category)
     if not fuel_category_to_items_cache then
         fuel_category_to_items_cache = {}
         for _, item_prototype in pairs(prototypes.item) do
-            local item_fuel_category = item_prototype.fuel_category
-            if item_fuel_category then
-                if not fuel_category_to_items_cache[item_fuel_category] then
-                    fuel_category_to_items_cache[item_fuel_category] = {}
+            local item_fuel_categories = item_prototype.fuel_categories
+            if item_fuel_categories then
+                for _, category in pairs(item_fuel_categories) do
+                    if not fuel_category_to_items_cache[category] then
+                        fuel_category_to_items_cache[category] = {}
+                    end
+                    table.insert(fuel_category_to_items_cache[category], item_prototype)
                 end
-                table.insert(fuel_category_to_items_cache[item_fuel_category], item_prototype)
             end
         end
     end
