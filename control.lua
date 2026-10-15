@@ -552,7 +552,7 @@ function FilterHelper.add_items_pump(entity, items)
             if connection.target then
                 local fluid_filter = connection.target.get_fluid_filter(connection.target_fluidbox_index)
                 if fluid_filter then
-                    fh_util.add_item_to_table(items, fluid_filter.fluid)
+                    fh_util.add_item_to_table(items, fluid_filter)
                 end
                 for fluid in pairs(connection.target.get_fluid_contents()) do
                     fh_util.add_item_to_table(items, fluid)

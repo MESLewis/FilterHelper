@@ -237,12 +237,12 @@ local fluid_filter_updater = {
         local active_items = {}
         local filter = entity.get_fluid_filter(1)
         if filter then
-            fh_util.add_item_to_table(active_items, filter.fluid)
+            fh_util.add_item_to_table(active_items, filter)
         end
         return active_items
     end,
     add = function(entity, clicked_item)
-        entity.set_fluid_filter(1, {fluid = clicked_item.name})
+        entity.set_fluid_filter(1, clicked_item.name)
     end,
     remove = function(entity, clicked_item)
         entity.set_fluid_filter(1, nil)
