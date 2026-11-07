@@ -23,6 +23,11 @@ local function update_filter_slot(entity, slot, clicked_item)
     end
 end
 
+local function verify_can_set_filter(entity)
+    local check, filter = pcall(entity.get_filter, 1)
+    return check and pcall(entity.set_filter, 1, filter)
+end
+
 local filtered_inventory_updater = {
     condition = function(entity)
         local inventory = get_storage_inventory(entity)
@@ -211,7 +216,7 @@ local logistic_chest_updater = {
 
 local one_filter_updater = {
     condition = function(entity)
-        return entity.filter_slot_count == 1 and fh_util.get_effective_type(entity) ~= "infinity-container"
+        return entity.filter_slot_count == 1 and verify_can_set_filter(entity)
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
@@ -251,7 +256,7 @@ local fluid_filter_updater = {
 
 local many_filters_updater = {
     condition = function(entity)
-        return entity.filter_slot_count > 1 and fh_util.get_effective_type(entity) ~= "infinity-container"
+        return entity.filter_slot_count > 1 and verify_can_set_filter(entity)
     end,
     button_description = { "fh.tooltip-filters" },
     get_active_items = function(entity)
