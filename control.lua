@@ -154,30 +154,26 @@ local function build_interface(player_global)
         type = "frame",
         name = "main_frame",
         anchor = anchor,
-        style = "fh_content_frame",
+        style = "frame_with_even_paddings",
     }
     -- limit the height of the relative gui to fit 10 buttons per column
     -- if there are too many buttons, the scroll-pane allows them to be scrolled
     -- to be visible
-    main_frame.style.maximal_height = buttons_per_column * 44
+    main_frame.style.maximal_height = (buttons_per_column * 40) + 24
     main_frame.style.horizontally_stretchable = false
 
     player_global.elements.main_frame = main_frame
 
     ---@type LuaGuiElement
     local content_frame = main_frame.add {
-        type = "scroll-pane",
-        name = "content_frame",
-        direction = "vertical",
-    }
-    content_frame.style.top_margin = 8
-
-    ---@type LuaGuiElement
-    local button_frame = content_frame.add {
         type = "frame",
-        name = "button_frame",
         direction = "vertical",
-        style = "fh_deep_frame",
+        style = "inside_deep_frame",
+    }
+
+    local scroll_pane = content_frame.add {
+        type = "scroll-pane",
+        style = "fh_scroll_pane",
     }
 
     -- use multiple columns if there are lots of buttons so its less
@@ -195,7 +191,7 @@ local function build_interface(player_global)
     columns = math.max(columns, 1)
 
     ---@type LuaGuiElement
-    local button_table = button_frame.add {
+    local button_table = scroll_pane.add {
         type = "table",
         name = "button_table",
         column_count = columns,

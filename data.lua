@@ -6,11 +6,15 @@ styles["fh_content_frame"] = {
     parent = "frame",
 }
 
-styles["fh_deep_frame"] = {
-    type = "frame_style",
-    parent = "slot_button_deep_frame",
-    vertically_stretchable = "on",
-    horizontally_stretchable = "on"
+styles["fh_scroll_pane"] = {
+    type = "scroll_pane_style",
+    parent = "naked_scroll_pane",
+    vertical_flow_style = {
+        type = "vertical_flow_style",
+        vertically_stretchable = "on",
+        horizontally_stretchable = "on",
+    },
+    background_graphical_set = deep_slot_background_tiling(40, 40),
     -- top_margin = 16,
     -- left_margin = 8,
     -- right_margin = 8,
